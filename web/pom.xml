@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Веб-версия iban4j: библиотека компилируется в JavaScript с помощью TeaVM
+  и публикуется как обычная страница (GitHub Pages).
+
+  Сборка локально (из корня проекта):   ./mvnw -f web/pom.xml package
+  Результат:                            web/target/site/  (index.html + iban4j.js)
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.iban4j</groupId>
+  <artifactId>iban4j-web</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <teavm.version>0.16.0</teavm.version>
+    <site.dir>${project.build.directory}/site</site.dir>
+  </properties>
+
+  <dependencies>
+    <!-- Замена стандартной библиотеки Java для работы в браузере -->
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-classlib</artifactId>
+      <version>${teavm.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- Аннотация @JSExport -->
+    <dependency>
+      <groupId>org.teavm</groupId>
+      <artifactId>teavm-jso</artifactId>
+      <version>${teavm.version}</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Берём исходники самой библиотеки из ../src/main/java -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <id>add-iban4j-sources</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.basedir}/../src/main/java</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <release>11</release>
+          <encoding>UTF-8</encoding>
+          <excludes>
+            <!-- module-info библиотеки здесь не нужен -->
+            <exclude>**/module-info.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <!-- Копируем страницу (index.html и т.д.) в папку сайта -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.3.1</version>
+        <executions>
+          <execution>
+            <id>copy-webapp</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${site.dir}</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/src/main/webapp</directory>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Java -> JavaScript -->
+      <plugin>
+        <groupId>org.teavm</groupId>
+        <artifactId>teavm-maven-plugin</artifactId>
+        <version>${teavm.version}</version>
+        <executions>
+          <execution>
+            <id>compile-to-js</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <mainClass>org.iban4j.web.IbanWeb</mainClass>
+              <jsModuleType>ES2015</jsModuleType>
+              <targetDirectory>${site.dir}</targetDirectory>
+              <targetFileName>iban4j.js</targetFileName>
+              <minifying>true</minifying>
+              <optimizationLevel>ADVANCED</optimizationLevel>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
