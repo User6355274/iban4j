@@ -1,327 +1,606 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>IBAN-помощник · iban4j в браузере</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f5f4a'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='700' fill='white' text-anchor='middle'%3EIB%3C/text%3E%3C/svg%3E">
-  <meta name="description" content="Собрать, проверить и расшифровать IBAN и BIC, сделать QR-код для оплаты. Работает на Java-библиотеке iban4j, скомпилированной в JavaScript.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2310b981'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='700' fill='%2309090b' text-anchor='middle'%3EIB%3C/text%3E%3C/svg%3E">
+  <meta name="description" content="Собрать, проверить и расшифровать IBAN и BIC, проверить список и сделать QR-код для оплаты. Работает на Java-библиотеке iban4j прямо в браузере.">
+  <script>
+    // тема: запоминаем выбор, без мигания при загрузке
+    try { const t = localStorage.getItem("iban4j-theme"); if (t === "yellow" || t === "dark") document.documentElement.dataset.theme = t; } catch (_) {}
+  </script>
   <style>
-    :root {
-      --bg: #f4f1ea;
-      --paper: #fffdf8;
-      --ink: #1d2433;
-      --muted: #6b7280;
-      --line: #e2dccf;
-      --accent: #1f5f4a;
-      --accent-soft: #e3efe9;
-      --warn: #8a5a00;
-      --warn-soft: #fbf0d9;
-      --bad: #9b2c2c;
-      --bad-soft: #fbe4e4;
-      --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    @font-face { font-family: "Onest"; src: url("fonts/Onest.woff") format("woff"); font-weight: 100 900; font-display: swap; }
+    @font-face { font-family: "JetBrains Mono"; src: url("fonts/JetBrainsMono.woff") format("woff"); font-weight: 100 800; font-display: swap; }
+    @font-face { font-family: "Martian Mono"; src: url("fonts/MartianMono.woff") format("woff"); font-weight: 100 800; font-display: swap; }
+    @font-face { font-family: "Press Start 2P"; src: url("fonts/PressStart2P.woff") format("woff"); font-display: swap; }
 
-      /* цвета частей IBAN */
-      --seg-country: #6366f1;
-      --seg-check: #e11d48;
-      --seg-bank_code: #0891b2;
-      --seg-bank_code_ext: #0d9488;
-      --seg-branch_code: #d97706;
-      --seg-account_number: #16a34a;
-      --seg-national_check_digit: #db2777;
-      --seg-account_type: #7c3aed;
-      --seg-owner_account_number: #a16207;
-      --seg-identification_number: #2563eb;
+    /* ---------- тема «Тёмная» (в духе metastrip.ai) ---------- */
+    :root, [data-theme="dark"] {
+      --bg: #09090b;
+      --surface: #0f0f17;
+      --surface-2: #14141f;
+      --line: #1e1e2e;
+      --line-strong: #2a2a3d;
+      --ink: #fafafa;
+      --muted: #a1a1aa;
+      --accent: #10b981;
+      --accent-ink: #09090b;
+      --accent-soft: rgba(16, 185, 129, 0.10);
+      --accent-line: rgba(16, 185, 129, 0.35);
+      --warn: #fbbf24; --warn-soft: rgba(251, 191, 36, 0.10); --warn-line: rgba(251, 191, 36, 0.35);
+      --bad: #f87171;  --bad-soft: rgba(248, 113, 113, 0.10);  --bad-line: rgba(248, 113, 113, 0.35);
+      --field: #0b0b12;
+      --radius: 12px;
+      --radius-sm: 10px;
+      --display: "Onest", -apple-system, "Segoe UI", sans-serif;
+      --display-weight: 800;
+      --display-case: none;
+      --display-track: -0.035em;
+      --body: "Onest", -apple-system, "Segoe UI", sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      --body-size: 16px;
+      --h1: clamp(38px, 6.2vw, 68px);
+      --h2: clamp(28px, 3.6vw, 40px);
+      --glow: radial-gradient(900px 420px at 50% -120px, rgba(16,185,129,0.16), transparent 70%);
+      --seg-country: #a5b4fc; --seg-check: #fb7185; --seg-bank_code: #67e8f9;
+      --seg-bank_code_ext: #5eead4; --seg-branch_code: #fbbf24; --seg-account_number: #6ee7b7;
+      --seg-national_check_digit: #f9a8d4; --seg-account_type: #c4b5fd;
+      --seg-owner_account_number: #fde047; --seg-identification_number: #93c5fd;
+      color-scheme: dark;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #14171d; --paper: #1b1f27; --ink: #e8e6e1; --muted: #9aa0aa; --line: #2c323d;
-        --accent: #6fc3a2; --accent-soft: #1c3a30; --warn: #f0c060; --warn-soft: #3a2f17;
-        --bad: #f08a8a; --bad-soft: #3b1d1d;
-        --seg-country: #a5b4fc; --seg-check: #fb7185; --seg-bank_code: #67e8f9;
-        --seg-bank_code_ext: #5eead4; --seg-branch_code: #fbbf24; --seg-account_number: #86efac;
-        --seg-national_check_digit: #f9a8d4; --seg-account_type: #c4b5fd;
-        --seg-owner_account_number: #fde047; --seg-identification_number: #93c5fd;
-      }
+    /* ---------- тема «Жёлтая» (в духе hmntch.org) ---------- */
+    [data-theme="yellow"] {
+      --bg: #fff000;
+      --surface: #ffffff;
+      --surface-2: #ffffff;
+      --line: #060606;
+      --line-strong: #060606;
+      --ink: #060606;
+      --muted: #4a4a4a;
+      --accent: #060606;
+      --accent-ink: #fff000;
+      --accent-soft: #fff000;
+      --accent-line: #060606;
+      --warn: #7a4a00; --warn-soft: #ffe7b0; --warn-line: #060606;
+      --bad: #b00020;  --bad-soft: #ffd9de;  --bad-line: #060606;
+      --field: #ffffff;
+      --radius: 0px;
+      --radius-sm: 0px;
+      --display: "Press Start 2P", "Martian Mono", monospace;
+      --display-weight: 400;
+      --display-case: uppercase;
+      --display-track: -0.02em;
+      --body: "Martian Mono", ui-monospace, monospace;
+      --mono: "Martian Mono", ui-monospace, monospace;
+      --body-size: 14px;
+      --h1: clamp(24px, 4.4vw, 52px);
+      --h2: clamp(18px, 2.6vw, 28px);
+      --glow: none;
+      --seg-country: #4f46e5; --seg-check: #e11d48; --seg-bank_code: #0891b2;
+      --seg-bank_code_ext: #0d9488; --seg-branch_code: #d97706; --seg-account_number: #16a34a;
+      --seg-national_check_digit: #db2777; --seg-account_type: #7c3aed;
+      --seg-owner_account_number: #a16207; --seg-identification_number: #2563eb;
+      color-scheme: light;
     }
+
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0; background: var(--bg); color: var(--ink);
-      font: 16px/1.5 var(--sans);
+      font-family: var(--body); font-size: var(--body-size); line-height: 1.6;
       -webkit-font-smoothing: antialiased;
     }
-    .wrap { max-width: 820px; margin: 0 auto; padding: 40px 20px 64px; }
-    header h1 { font-size: 34px; line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.02em; }
-    header h1 span { font-family: var(--mono); color: var(--accent); }
-    header p { margin: 0; color: var(--muted); max-width: 62ch; }
+    a { color: inherit; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+    .mono { font-family: var(--mono); }
+    .eyebrow {
+      font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--accent); margin: 0 0 14px;
+    }
+    [data-theme="yellow"] .eyebrow { color: var(--muted); letter-spacing: 0.12em; font-size: 11px; }
 
-    .tabs { display: flex; gap: 4px; margin: 28px 0 0; overflow-x: auto; scrollbar-width: none; }
+    /* ---------- верхняя панель ---------- */
+    .topbar {
+      position: sticky; top: 0; z-index: 10;
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar .wrap { display: flex; align-items: center; gap: 24px; height: 60px; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 700; letter-spacing: -0.01em; }
+    .logo-mark {
+      width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px;
+      background: var(--accent); color: var(--accent-ink); font-family: var(--mono); font-size: 12px; font-weight: 800;
+    }
+    [data-theme="yellow"] .logo-mark { border-radius: 0; }
+    [data-theme="yellow"] .logo { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.02em; }
+    .nav { display: flex; gap: 20px; font-size: 14px; color: var(--muted); }
+    .nav a { text-decoration: none; }
+    .nav a:hover { color: var(--ink); }
+    .theme-switch {
+      margin-left: auto; display: flex; border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+      padding: 3px; gap: 2px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .theme-switch button {
+      font: inherit; border: none; background: transparent; color: var(--muted); padding: 6px 10px;
+      border-radius: calc(var(--radius-sm) - 3px); cursor: pointer;
+    }
+    .theme-switch button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+    /* ---------- первый экран ---------- */
+    .hero { background: var(--glow); padding: 72px 0 64px; border-bottom: 1px solid var(--line); }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+      border: 1px solid var(--accent-line); background: var(--accent-soft); border-radius: 999px; padding: 6px 12px;
+      margin-bottom: 26px;
+    }
+    .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    [data-theme="yellow"] .badge { border-radius: 0; background: transparent; color: var(--ink); border-color: var(--ink); }
+    h1, h2, h3 { font-family: var(--display); font-weight: var(--display-weight); text-transform: var(--display-case); letter-spacing: var(--display-track); }
+    h1 { font-size: var(--h1); line-height: 1.04; margin: 0 0 24px; }
+    [data-theme="yellow"] h1 { line-height: 1.25; }
+    h1 .accent { color: var(--accent); }
+    [data-theme="yellow"] h1 .accent { color: var(--ink); background: var(--surface); padding: 0 .15em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+    .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; margin-top: 8px; }
+    .hero-lead { font-size: 18px; color: var(--muted); margin: 0 0 22px; max-width: 46ch; }
+    [data-theme="yellow"] .hero-lead { font-size: 14px; color: var(--ink); }
+    .trust { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); margin: 0 0 28px; padding: 0; list-style: none; }
+    .trust li::before { content: "✓ "; color: var(--accent); font-weight: 700; }
+    .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* живой пример */
+    .live { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+    [data-theme="yellow"] .live { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .live-head {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 10px 16px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 11px;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    }
+    [data-theme="yellow"] .live-head { border-color: #333; color: #bdbdbd; }
+    .live-head .dot-live { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 8px; animation: pulse 1.6s infinite; }
+    [data-theme="yellow"] .live-head .dot-live { background: var(--bg); border-radius: 0; }
+    @keyframes pulse { 50% { opacity: .25; } }
+    .live-body { padding: 22px 20px 18px; }
+    .live-iban { font-family: var(--mono); font-size: clamp(17px, 2.1vw, 22px); letter-spacing: 0.02em; word-break: break-all; min-height: 2.2em; line-height: 1.7; transition: opacity .25s; }
+    .live-iban.fade { opacity: 0; }
+    .live-country { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 6px; }
+    [data-theme="yellow"] .live-country { color: #bdbdbd; }
+    .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); font-size: 12.5px; }
+    [data-theme="yellow"] .legend { border-color: #333; }
+    .legend span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    [data-theme="yellow"] .live {
+      --seg-country: #a5b4fc; --seg-check: #fb7185; --seg-bank_code: #67e8f9;
+      --seg-bank_code_ext: #5eead4; --seg-branch_code: #fbbf24; --seg-account_number: #6ee7b7;
+      --seg-national_check_digit: #f9a8d4; --seg-account_type: #c4b5fd;
+      --seg-owner_account_number: #fde047; --seg-identification_number: #93c5fd;
+    }
+    [data-theme="yellow"] .live .seg { color: #ffffff; background: color-mix(in srgb, var(--c) 30%, transparent); }
+
+    /* ---------- разделы ---------- */
+    .section { padding: 72px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 60px; }
+    [data-theme="yellow"] .section { background: var(--surface); }
+    .section-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
+    .section-head h2 { font-size: var(--h2); line-height: 1.1; margin: 0; }
+    .section-head p { margin: 0; color: var(--muted); max-width: 42ch; font-size: 15px; }
+    [data-theme="yellow"] .section-head p { font-size: 13px; }
+
+    /* вкладки */
+    .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 12px; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab {
-      border: 1px solid var(--line); border-bottom: none; background: transparent; color: var(--muted);
-      padding: 10px 16px; border-radius: 10px 10px 0 0; font: inherit; font-size: 15px; cursor: pointer;
-      white-space: nowrap; flex: none;
+      flex: none; white-space: nowrap; cursor: pointer; font-family: var(--mono); font-size: 13px;
+      letter-spacing: 0.03em; text-transform: uppercase;
+      background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: var(--radius-sm);
+      padding: 10px 14px;
     }
-    .tab[aria-selected="true"] { background: var(--paper); color: var(--ink); font-weight: 600; }
-    .panel {
-      background: var(--paper); border: 1px solid var(--line); border-radius: 0 12px 12px 12px;
-      padding: 24px;
-    }
+    .tab:hover { color: var(--ink); border-color: var(--line-strong); }
+    .tab .tab-n { color: var(--accent); margin-right: 8px; opacity: .9; }
+    .tab[aria-selected="true"] { background: var(--surface-2); color: var(--ink); border-color: var(--accent-line); }
+    [data-theme="yellow"] .tab { color: var(--ink); }
+    [data-theme="yellow"] .tab .tab-n { color: var(--muted); }
+    [data-theme="yellow"] .tab[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+    [data-theme="yellow"] .tab[aria-selected="true"] .tab-n { color: var(--bg); }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
     .panel[hidden] { display: none; }
-    .lead { margin: 0 0 18px; color: var(--muted); font-size: 15px; }
+    .lead { margin: 0 0 22px; color: var(--muted); font-size: 15px; max-width: 70ch; }
+    [data-theme="yellow"] .lead { font-size: 13px; }
 
-    label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-    .hint { font-weight: 400; color: var(--muted); }
+    /* поля */
+    label {
+      display: block; font-family: var(--mono); font-size: 11.5px; font-weight: 500; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+    }
+    label .hint { text-transform: none; letter-spacing: 0; opacity: .8; }
     input, select, textarea {
-      width: 100%; font: inherit; font-size: 17px; color: var(--ink); background: var(--bg);
-      border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px;
+      width: 100%; font: inherit; font-size: 16px; color: var(--ink); background: var(--field);
+      border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 12px 14px;
+      transition: border-color .15s, box-shadow .15s;
     }
-    input.mono, textarea.mono, #fields input { font-family: var(--mono); letter-spacing: 0.04em; }
-    textarea { resize: vertical; min-height: 180px; font-size: 15px; line-height: 1.5; }
-    textarea.drag { outline: 2px dashed var(--accent); outline-offset: 2px; }
-    input::placeholder, textarea::placeholder {
-      color: var(--muted); opacity: 0.7; letter-spacing: 0; font-family: var(--sans); font-size: 15px;
-    }
-    input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
-    .field { margin-bottom: 16px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 16px; }
-    .counter { float: right; font-weight: 400; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    [data-theme="yellow"] input, [data-theme="yellow"] select, [data-theme="yellow"] textarea { font-size: 14px; }
+    input.mono, textarea.mono, #fields input { font-family: var(--mono); letter-spacing: 0.03em; }
+    textarea { resize: vertical; min-height: 190px; font-size: 14px; line-height: 1.6; }
+    textarea.drop { border-style: dashed; border-color: var(--accent-line); }
+    textarea.drag { background: var(--accent-soft); }
+    input::placeholder, textarea::placeholder { color: var(--muted); opacity: .6; letter-spacing: 0; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    [data-theme="yellow"] input:focus, [data-theme="yellow"] select:focus, [data-theme="yellow"] textarea:focus { box-shadow: 4px 4px 0 var(--ink); }
+    .field { margin-bottom: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0 18px; }
+    .counter { float: right; font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0; }
     .counter.ok { color: var(--accent); }
+    [data-theme="yellow"] .counter.ok { font-weight: 700; }
 
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; align-items: center; }
-    button.primary, button.secondary, label.secondary {
-      font: inherit; font-weight: 600; border-radius: 8px; padding: 11px 18px; cursor: pointer;
-      margin: 0; font-size: 16px;
+    /* кнопки */
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+    .btn, button.primary, button.secondary, label.secondary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+      border-radius: var(--radius-sm); padding: 12px 18px; cursor: pointer; margin: 0; text-decoration: none;
+      transition: transform .1s, background .15s, border-color .15s;
     }
-    button.primary { background: var(--accent); color: var(--paper); border: 1px solid var(--accent); }
-    button.secondary, label.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .btn-primary, button.primary { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); }
+    .btn-primary:hover, button.primary:hover { filter: brightness(1.08); }
+    .btn-secondary, button.secondary, label.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line-strong); }
+    .btn-secondary:hover, button.secondary:hover, label.secondary:hover { border-color: var(--accent); }
+    [data-theme="yellow"] .btn:active, [data-theme="yellow"] button.primary:active, [data-theme="yellow"] button.secondary:active { transform: translate(2px, 2px); }
     button.link {
-      font: inherit; font-size: 14px; font-weight: 600; background: none; border: none; padding: 0;
-      color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+      font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+      background: none; border: none; padding: 0; color: var(--accent); cursor: pointer;
+      text-decoration: underline; text-underline-offset: 4px;
     }
+    [data-theme="yellow"] button.link { color: var(--ink); }
     button:disabled { opacity: 0.5; cursor: wait; }
 
-    .result { margin-top: 22px; }
-    .card { border-radius: 10px; padding: 18px; border: 1px solid var(--line); }
-    .card.ok { background: var(--accent-soft); border-color: transparent; }
-    .card.warn { background: var(--warn-soft); border-color: transparent; }
-    .card.bad { background: var(--bad-soft); border-color: transparent; color: var(--bad); }
-    .status { font-weight: 600; font-size: 14px; margin-bottom: 10px; }
+    /* результаты */
+    .result { margin-top: 24px; }
+    .card { border-radius: var(--radius-sm); padding: 20px; border: 1px solid var(--line); }
+    .card.ok { background: var(--accent-soft); border-color: var(--accent-line); }
+    .card.warn { background: var(--warn-soft); border-color: var(--warn-line); }
+    .card.bad { background: var(--bad-soft); border-color: var(--bad-line); color: var(--bad); }
+    [data-theme="yellow"] .card { border-width: 1px; box-shadow: 5px 5px 0 var(--ink); }
+    .status { font-family: var(--mono); font-weight: 600; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 12px; }
     .card.ok .status { color: var(--accent); }
     .card.warn .status { color: var(--warn); }
+    [data-theme="yellow"] .card.ok { background: var(--surface); }
+    [data-theme="yellow"] .card .status { display: inline-block; padding: 4px 8px; }
+    [data-theme="yellow"] .card.ok .status { background: var(--ink); color: var(--bg); }
+    [data-theme="yellow"] .card.warn .status { background: var(--warn); color: #fff; }
+    [data-theme="yellow"] .card.bad .status { background: var(--bad); color: #fff; margin-bottom: 0; }
     .big {
-      font-family: var(--mono); font-size: 25px; letter-spacing: 0.03em; word-break: break-all;
-      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      font-family: var(--mono); font-size: clamp(19px, 2.6vw, 26px); letter-spacing: 0.02em; word-break: break-all;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap; line-height: 1.6;
     }
     .copy {
-      font: inherit; font-size: 13px; font-family: var(--sans); letter-spacing: 0;
-      border: 1px solid currentColor; background: transparent; color: inherit; opacity: 0.8;
-      border-radius: 6px; padding: 4px 10px; cursor: pointer;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+      border: 1px solid currentColor; background: transparent; color: inherit; opacity: 0.75;
+      border-radius: 6px; padding: 5px 10px; cursor: pointer;
     }
-    .raw { font-family: var(--mono); font-size: 14px; opacity: .75; margin-top: 6px; word-break: break-all; }
+    [data-theme="yellow"] .copy { border-radius: 0; }
+    .raw { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-top: 4px; word-break: break-all; }
+    .seg { border-radius: 4px; padding: 2px 0; background: color-mix(in srgb, var(--c) 22%, transparent); box-shadow: inset 0 -2px 0 var(--c); }
+    [data-theme="yellow"] .seg { border-radius: 0; background: color-mix(in srgb, var(--c) 28%, transparent); }
+    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--c); margin-right: 8px; vertical-align: 0; flex: none; }
+    [data-theme="yellow"] .dot { border-radius: 0; }
 
-    /* подсветка частей */
-    .seg { border-radius: 4px; padding: 1px 0; background: color-mix(in srgb, var(--c) 24%, transparent);
-           box-shadow: inset 0 -2px 0 var(--c); }
-    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--c);
-           margin-right: 8px; vertical-align: 0; }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 15px; }
-    td, th { padding: 6px 0; border-top: 1px solid rgba(127,127,127,0.18); vertical-align: top; text-align: left; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+    td, th { padding: 8px 0; border-top: 1px solid var(--line); vertical-align: top; text-align: left; }
+    [data-theme="yellow"] td, [data-theme="yellow"] th { border-top-color: rgba(0,0,0,.18); }
     .parts td:first-child { color: var(--muted); width: 45%; padding-right: 12px; }
     .parts td:last-child { font-family: var(--mono); }
-    .card-footer { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
-    ul.notes { margin: 12px 0 0; padding-left: 18px; font-size: 14px; color: var(--muted); }
+    .card-footer { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+    ul.notes { margin: 12px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
 
     /* QR */
-    .qr-layout { display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
+    .qr-layout { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
     .qr-box {
-      background: #fff; border-radius: 12px; border: 1px solid var(--line); padding: 12px;
+      background: #fff; border-radius: var(--radius-sm); border: 1px solid var(--line-strong); padding: 14px;
       aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-      color: #6b7280; font-size: 14px; text-align: center; transition: opacity .15s;
+      color: #6b7280; font-family: var(--mono); font-size: 12px; text-align: center; transition: opacity .15s;
     }
     .qr-box svg { width: 100%; height: 100%; display: block; }
-    .qr-box.stale { opacity: .35; }
+    .qr-box.stale { opacity: .3; }
     .qr-side .actions { margin-top: 12px; }
-    .qr-side .actions button { flex: 1; padding: 9px 10px; font-size: 14px; }
-    .qr-msg { margin-top: 12px; font-size: 14px; }
+    .qr-side .actions button { flex: 1; padding: 10px; }
+    .qr-msg { margin-top: 12px; font-size: 13px; }
     .qr-msg.bad { color: var(--bad); }
     .qr-msg.ok { color: var(--accent); }
-    details { margin-top: 12px; font-size: 14px; }
-    summary { cursor: pointer; color: var(--muted); }
-    pre { font-family: var(--mono); font-size: 12.5px; background: var(--bg); padding: 10px; border-radius: 8px;
-          white-space: pre-wrap; word-break: break-all; margin: 8px 0 0; }
+    [data-theme="yellow"] .qr-msg.ok { color: var(--ink); }
+    details { margin-top: 12px; font-size: 13px; }
+    summary { cursor: pointer; color: var(--muted); font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; }
+    pre { font-family: var(--mono); font-size: 12px; background: var(--field); border: 1px solid var(--line); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; margin: 8px 0 0; }
 
-    /* массовая проверка */
-    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 12px; }
-    .chip { font-size: 14px; padding: 4px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); }
+    /* список */
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; }
+    .chip { font-family: var(--mono); font-size: 12px; padding: 5px 11px; border-radius: 999px; background: var(--field); border: 1px solid var(--line-strong); }
+    [data-theme="yellow"] .chip { border-radius: 0; }
     .chip b { font-variant-numeric: tabular-nums; }
-    .chip.ok { color: var(--accent); }
-    .chip.warn { color: var(--warn); }
-    .chip.bad { color: var(--bad); }
+    .chip.ok { color: var(--accent); border-color: var(--accent-line); }
+    .chip.warn { color: var(--warn); border-color: var(--warn-line); }
+    .chip.bad { color: var(--bad); border-color: var(--bad-line); }
+    [data-theme="yellow"] .chip.ok { background: var(--bg); color: var(--ink); }
     .bulk-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
-    .bulk-tools select { width: auto; font-size: 15px; padding: 8px 10px; }
-    .bulk-table { font-size: 14px; }
-    .bulk-table th { color: var(--muted); font-weight: 600; font-size: 13px; }
-    .bulk-table td { padding: 7px 8px 7px 0; }
-    .bulk-table td.n { color: var(--muted); font-variant-numeric: tabular-nums; width: 3.5em; }
+    .bulk-tools select { width: auto; font-size: 14px; padding: 9px 12px; }
+    .bulk-table { font-size: 13.5px; }
+    .bulk-table th { color: var(--muted); font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .bulk-table td { padding: 9px 10px 9px 0; }
+    .bulk-table td.n { color: var(--muted); font-family: var(--mono); font-variant-numeric: tabular-nums; width: 3.5em; }
     .bulk-table td.iban { font-family: var(--mono); white-space: nowrap; }
-    .bulk-table td.st { white-space: nowrap; font-weight: 600; }
+    .bulk-table td.st { white-space: nowrap; font-family: var(--mono); font-size: 12px; font-weight: 600; text-transform: uppercase; }
     .bulk-table tr.ok td.st { color: var(--accent); }
     .bulk-table tr.warn td.st { color: var(--warn); }
     .bulk-table tr.bad td.st { color: var(--bad); }
+    [data-theme="yellow"] .bulk-table tr.ok td.st { color: #0a7a2f; }
     .bulk-table td.d { color: var(--muted); }
     .table-wrap { overflow-x: auto; }
-    .muted { color: var(--muted); font-size: 14px; }
+    .muted { color: var(--muted); font-size: 13px; }
 
-    footer { margin-top: 28px; color: var(--muted); font-size: 13px; }
-    footer a { color: inherit; }
+    /* как это работает */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .step { border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; background: var(--surface); }
+    [data-theme="yellow"] .step { background: var(--bg); border-color: var(--ink); }
+    .step-n { font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 18px; }
+    [data-theme="yellow"] .step-n { color: var(--ink); }
+    .step h3 { font-size: 20px; margin: 0 0 10px; line-height: 1.2; }
+    [data-theme="yellow"] .step h3 { font-size: 13px; line-height: 1.5; }
+    .step p { margin: 0; color: var(--muted); font-size: 15px; }
+    [data-theme="yellow"] .step p { color: var(--ink); font-size: 12.5px; }
+
+    footer { padding: 32px 0 48px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    [data-theme="yellow"] footer { background: var(--ink); color: #bdbdbd; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+    footer p { margin: 0 0 6px; }
+
+    @media (max-width: 860px) {
+      .hero-grid, .steps { grid-template-columns: 1fr; }
+      .nav { display: none; }
+    }
     @media (max-width: 640px) {
       .qr-layout { grid-template-columns: 1fr; }
-      .qr-side { max-width: 320px; }
-    }
-    @media (max-width: 520px) {
-      .wrap { padding-top: 28px; }
-      header h1 { font-size: 27px; }
+      .qr-side { max-width: 340px; }
+      .hero { padding: 44px 0 40px; }
+      .section { padding: 48px 0; }
       .panel { padding: 18px; }
-      .big { font-size: 19px; }
-      .tab { padding: 9px 12px; font-size: 14px; }
+      .wrap { padding: 0 16px; }
       .bulk-table .d { display: none; }
       .bulk-table td.iban { white-space: normal; word-break: break-all; }
+      .legend { grid-template-columns: 1fr; }
     }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .live-head .dot-live { animation: none; } }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>IBAN-помощник <span>iban4j</span></h1>
-    <p>Собрать IBAN из кода банка и номера счёта, проверить один номер или целый список, сделать QR-код
-      для оплаты и расшифровать BIC. Всё считается прямо в браузере — данные никуда не отправляются.</p>
-  </header>
-
-  <div class="tabs" role="tablist">
-    <button class="tab" role="tab" aria-selected="true" data-tab="build">Собрать IBAN</button>
-    <button class="tab" role="tab" aria-selected="false" data-tab="check">Проверить IBAN</button>
-    <button class="tab" role="tab" aria-selected="false" data-tab="bulk">Проверить список</button>
-    <button class="tab" role="tab" aria-selected="false" data-tab="qr">QR для оплаты</button>
-    <button class="tab" role="tab" aria-selected="false" data-tab="bic">Проверить BIC</button>
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="#top"><span class="logo-mark">IB</span>IBAN-помощник</a>
+    <nav class="nav">
+      <a href="#tool">Инструменты</a>
+      <a href="#how">Как это работает</a>
+      <a href="https://github.com/User6355274/iban4j">GitHub</a>
+    </nav>
+    <div class="theme-switch" role="group" aria-label="Тема оформления">
+      <button type="button" data-set-theme="dark">Тёмная</button>
+      <button type="button" data-set-theme="yellow">Жёлтая</button>
+    </div>
   </div>
+</header>
 
-  <!-- Собрать -->
-  <section class="panel" id="panel-build" role="tabpanel">
-    <p class="lead">Выберите страну — появятся нужные поля. Пустое поле заполнится случайным значением.</p>
-    <div class="field">
-      <label for="country">Страна</label>
-      <select id="country" disabled><option>Загрузка библиотеки…</option></select>
-    </div>
-    <form id="build-form" autocomplete="off">
-      <div class="grid" id="fields"></div>
-      <div class="actions">
-        <button class="primary" type="submit" disabled>Собрать IBAN</button>
-        <button class="secondary" type="button" id="random-btn" disabled>Случайный IBAN</button>
-        <button class="secondary" type="button" id="clear-btn">Очистить</button>
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <span class="badge">Приватно · бесплатно · прямо в браузере</span>
+      <h1>IBAN без ошибок.<br><span class="accent">Проверка за секунду.</span></h1>
+      <div class="hero-grid">
+        <div>
+          <p class="hero-lead">Соберите IBAN из кода банка и номера счёта, проверьте один номер или целый список,
+            сделайте QR-код для оплаты. Номера никуда не отправляются — всё считается у вас.</p>
+          <ul class="trust">
+            <li>Без загрузки на сервер</li>
+            <li>Без регистрации</li>
+            <li><span id="country-count">100+</span> стран</li>
+          </ul>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="#tool" data-goto="build">Собрать IBAN</a>
+            <a class="btn btn-secondary" href="#tool" data-goto="bulk">Проверить список</a>
+          </div>
+        </div>
+        <div class="live" aria-label="Пример: как устроен IBAN">
+          <div class="live-head"><span><span class="dot-live"></span>Как устроен IBAN</span><span id="live-flag">—</span></div>
+          <div class="live-body">
+            <div class="live-iban" id="live-iban">&nbsp;</div>
+            <div class="live-country" id="live-country">Загрузка библиотеки…</div>
+            <div class="legend" id="live-legend"></div>
+          </div>
+        </div>
       </div>
-    </form>
-    <div class="result" id="build-result" aria-live="polite"></div>
+    </div>
   </section>
 
-  <!-- Проверить IBAN -->
-  <section class="panel" id="panel-check" role="tabpanel" hidden>
-    <p class="lead">Вставьте IBAN — можно с пробелами и маленькими буквами.</p>
-    <form id="check-form" autocomplete="off">
+  <section class="section" id="tool">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">01 — Инструменты</p>
+          <h2>Что нужно сделать?</h2>
+        </div>
+        <p>Выберите задачу. Результат появится сразу — без отправки данных и без ожидания.</p>
+      </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-tab="build"><span class="tab-n">01</span>Собрать IBAN</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="check"><span class="tab-n">02</span>Проверить IBAN</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="bulk"><span class="tab-n">03</span>Проверить список</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="qr"><span class="tab-n">04</span>QR для оплаты</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="bic"><span class="tab-n">05</span>Проверить BIC</button>
+    </div>
+
+    <!-- Собрать -->
+    <section class="panel" id="panel-build" role="tabpanel">
+      <p class="lead">Выберите страну — появятся нужные поля. Пустое поле заполнится случайным значением.</p>
       <div class="field">
-        <label for="iban-input">IBAN</label>
-        <input id="iban-input" class="mono" placeholder="например, MD24 AG00 0225 1000 1310 4168" spellcheck="false">
+        <label for="country">Страна</label>
+        <select id="country" disabled><option>Загрузка библиотеки…</option></select>
       </div>
-      <div class="actions"><button class="primary" type="submit" disabled>Проверить</button></div>
-    </form>
-    <div class="result" id="check-result" aria-live="polite"></div>
-  </section>
-
-  <!-- Проверить список -->
-  <section class="panel" id="panel-bulk" role="tabpanel" hidden>
-    <p class="lead">Вставьте список IBAN — по одному в строке. Можно вставить строки прямо из Excel или
-      загрузить CSV-файл: номер в строке найдётся сам. Файл никуда не загружается, всё проверяется у вас в браузере.</p>
-    <div class="field">
-      <label for="bulk-input">Список</label>
-      <textarea id="bulk-input" class="mono" spellcheck="false"
-        placeholder="DE89 3704 0044 0532 0130 00&#10;GB29NWBK60161331926819&#10;Иван Петров;MD24AG000225100013104168;150"></textarea>
-    </div>
-    <div class="actions">
-      <button class="primary" type="button" id="bulk-run" disabled>Проверить список</button>
-      <label class="secondary" for="bulk-file">Загрузить файл…</label>
-      <input type="file" id="bulk-file" accept=".csv,.txt,.tsv,text/csv,text/plain" hidden>
-      <button class="secondary" type="button" id="bulk-example">Пример</button>
-      <button class="secondary" type="button" id="bulk-clear">Очистить</button>
-    </div>
-    <div class="result" id="bulk-result" aria-live="polite"></div>
-  </section>
-
-  <!-- QR -->
-  <section class="panel" id="panel-qr" role="tabpanel" hidden>
-    <p class="lead">QR-код для перевода в евро (стандарт EPC, он же GiroCode). Его понимают банковские
-      приложения в странах SEPA: отсканировали — и получатель, IBAN, сумма и назначение заполнятся сами.</p>
-    <div class="qr-layout">
-      <form id="qr-form" autocomplete="off">
-        <div class="field">
-          <label for="qr-name">Получатель <span class="hint">— имя или название, до 70 символов</span></label>
-          <input id="qr-name" maxlength="70" placeholder="например, Max Mustermann">
-        </div>
-        <div class="field">
-          <label for="qr-iban">IBAN получателя</label>
-          <input id="qr-iban" class="mono" placeholder="например, DE89 3704 0044 0532 0130 00" spellcheck="false">
-        </div>
-        <div class="grid">
-          <div class="field">
-            <label for="qr-amount">Сумма, EUR <span class="hint">— необязательно</span></label>
-            <input id="qr-amount" inputmode="decimal" placeholder="например, 25,50">
-          </div>
-          <div class="field">
-            <label for="qr-bic">BIC банка <span class="hint">— если вне ЕЭЗ</span></label>
-            <input id="qr-bic" class="mono" placeholder="необязательно" spellcheck="false">
-          </div>
-        </div>
-        <div class="field">
-          <label for="qr-text">Назначение платежа <span class="hint">— необязательно, до 140 символов</span></label>
-          <input id="qr-text" maxlength="140" placeholder="например, Счёт №117">
+      <form id="build-form" autocomplete="off">
+        <div class="grid" id="fields"></div>
+        <div class="actions">
+          <button class="primary" type="submit" disabled>Собрать IBAN</button>
+          <button class="secondary" type="button" id="random-btn" disabled>Случайный IBAN</button>
+          <button class="secondary" type="button" id="clear-btn">Очистить</button>
         </div>
       </form>
-      <div class="qr-side">
-        <div class="qr-box" id="qr-box">Заполните получателя и IBAN — здесь появится QR-код</div>
-        <div class="actions" id="qr-actions" hidden>
-          <button class="secondary" type="button" id="qr-png">Скачать PNG</button>
-          <button class="secondary" type="button" id="qr-svg">Скачать SVG</button>
+      <div class="result" id="build-result" aria-live="polite"></div>
+    </section>
+
+    <!-- Проверить IBAN -->
+    <section class="panel" id="panel-check" role="tabpanel" hidden>
+      <p class="lead">Вставьте IBAN — можно с пробелами и маленькими буквами.</p>
+      <form id="check-form" autocomplete="off">
+        <div class="field">
+          <label for="iban-input">IBAN</label>
+          <input id="iban-input" class="mono" placeholder="например, MD24 AG00 0225 1000 1310 4168" spellcheck="false">
         </div>
-        <div class="qr-msg" id="qr-msg" aria-live="polite"></div>
-        <details id="qr-details" hidden>
-          <summary>Что зашито в QR-код</summary>
-          <pre id="qr-payload"></pre>
-        </details>
+        <div class="actions"><button class="primary" type="submit" disabled>Проверить</button></div>
+      </form>
+      <div class="result" id="check-result" aria-live="polite"></div>
+    </section>
+
+    <!-- Проверить список -->
+    <section class="panel" id="panel-bulk" role="tabpanel" hidden>
+      <p class="lead">Вставьте список IBAN — по одному в строке. Можно вставить строки прямо из Excel или
+        загрузить CSV-файл: номер в строке найдётся сам. Файл никуда не загружается, всё проверяется у вас в браузере.</p>
+      <div class="field">
+        <label for="bulk-input">Список <span class="hint">— или перетащите CSV-файл в поле</span></label>
+        <textarea id="bulk-input" class="mono drop" spellcheck="false"
+          placeholder="DE89 3704 0044 0532 0130 00&#10;GB29NWBK60161331926819&#10;Иван Петров;MD24AG000225100013104168;150"></textarea>
       </div>
+      <div class="actions">
+        <button class="primary" type="button" id="bulk-run" disabled>Проверить список</button>
+        <label class="secondary" for="bulk-file">Загрузить файл…</label>
+        <input type="file" id="bulk-file" accept=".csv,.txt,.tsv,text/csv,text/plain" hidden>
+        <button class="secondary" type="button" id="bulk-example">Пример</button>
+        <button class="secondary" type="button" id="bulk-clear">Очистить</button>
+      </div>
+      <div class="result" id="bulk-result" aria-live="polite"></div>
+    </section>
+
+    <!-- QR -->
+    <section class="panel" id="panel-qr" role="tabpanel" hidden>
+      <p class="lead">QR-код для перевода в евро (стандарт EPC, он же GiroCode). Его понимают банковские
+        приложения в странах SEPA: отсканировали — и получатель, IBAN, сумма и назначение заполнятся сами.</p>
+      <div class="qr-layout">
+        <form id="qr-form" autocomplete="off">
+          <div class="field">
+            <label for="qr-name">Получатель <span class="hint">— имя или название, до 70 символов</span></label>
+            <input id="qr-name" maxlength="70" placeholder="например, Max Mustermann">
+          </div>
+          <div class="field">
+            <label for="qr-iban">IBAN получателя</label>
+            <input id="qr-iban" class="mono" placeholder="например, DE89 3704 0044 0532 0130 00" spellcheck="false">
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label for="qr-amount">Сумма, EUR <span class="hint">— необязательно</span></label>
+              <input id="qr-amount" inputmode="decimal" placeholder="например, 25,50">
+            </div>
+            <div class="field">
+              <label for="qr-bic">BIC банка <span class="hint">— если вне ЕЭЗ</span></label>
+              <input id="qr-bic" class="mono" placeholder="необязательно" spellcheck="false">
+            </div>
+          </div>
+          <div class="field">
+            <label for="qr-text">Назначение платежа <span class="hint">— необязательно, до 140 символов</span></label>
+            <input id="qr-text" maxlength="140" placeholder="например, Счёт №117">
+          </div>
+        </form>
+        <div class="qr-side">
+          <div class="qr-box" id="qr-box">Заполните получателя и IBAN — здесь появится QR-код</div>
+          <div class="actions" id="qr-actions" hidden>
+            <button class="secondary" type="button" id="qr-png">Скачать PNG</button>
+            <button class="secondary" type="button" id="qr-svg">Скачать SVG</button>
+          </div>
+          <div class="qr-msg" id="qr-msg" aria-live="polite"></div>
+          <details id="qr-details" hidden>
+            <summary>Что зашито в QR-код</summary>
+            <pre id="qr-payload"></pre>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Проверить BIC -->
+    <section class="panel" id="panel-bic" role="tabpanel" hidden>
+      <p class="lead">BIC (он же SWIFT-код) — 8 или 11 символов, например DEUTDEFF500.</p>
+      <form id="bic-form" autocomplete="off">
+        <div class="field">
+          <label for="bic-input">BIC / SWIFT</label>
+          <input id="bic-input" class="mono" placeholder="например, DEUTDEFF500" spellcheck="false">
+        </div>
+        <div class="actions"><button class="primary" type="submit" disabled>Проверить</button></div>
+      </form>
+      <div class="result" id="bic-result" aria-live="polite"></div>
+    </section>
+
     </div>
   </section>
 
-  <!-- Проверить BIC -->
-  <section class="panel" id="panel-bic" role="tabpanel" hidden>
-    <p class="lead">BIC (он же SWIFT-код) — 8 или 11 символов, например DEUTDEFF500.</p>
-    <form id="bic-form" autocomplete="off">
-      <div class="field">
-        <label for="bic-input">BIC / SWIFT</label>
-        <input id="bic-input" class="mono" placeholder="например, DEUTDEFF500" spellcheck="false">
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">02 — Как это работает</p>
+          <h2>Никаких серверов.</h2>
+        </div>
+        <p>Можно даже отключить интернет после загрузки страницы — всё продолжит работать.</p>
       </div>
-      <div class="actions"><button class="primary" type="submit" disabled>Проверить</button></div>
-    </form>
-    <div class="result" id="bic-result" aria-live="polite"></div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-n">01</div>
+          <h3>Настоящая библиотека</h3>
+          <p>Внутри — Java-библиотека iban4j: правила для каждой страны и более тысячи автоматических тестов.</p>
+        </div>
+        <div class="step">
+          <div class="step-n">02</div>
+          <h3>Скомпилирована в JavaScript</h3>
+          <p>TeaVM переводит Java-код в JavaScript, поэтому библиотека работает прямо на этой странице.</p>
+        </div>
+        <div class="step">
+          <div class="step-n">03</div>
+          <h3>Данные остаются у вас</h3>
+          <p>Номера, списки и QR-коды обрабатываются в вашем браузере и никуда не отправляются.</p>
+        </div>
+      </div>
+    </div>
   </section>
+</main>
 
-  <footer>
-    Работает на Java-библиотеке <a href="https://github.com/arturmkrtchyan/iban4j">iban4j</a>,
-    скомпилированной в JavaScript с помощью <a href="https://teavm.org">TeaVM</a>.
-    QR-коды рисует <a href="https://www.nayuki.io/page/qr-code-generator-library">QR Code generator</a> (Project Nayuki, MIT).
-    Сгенерированные номера правильные по форме, но это не настоящие счета — только для тестов.
-  </footer>
-</div>
+<footer>
+  <div class="wrap">
+    <div>
+      <p>Работает на <a href="https://github.com/arturmkrtchyan/iban4j">iban4j</a> (Apache 2.0) и <a href="https://teavm.org">TeaVM</a>.</p>
+      <p>QR-коды: <a href="https://www.nayuki.io/page/qr-code-generator-library">QR Code generator</a> (Project Nayuki, MIT). Шрифты: Onest, JetBrains Mono, Martian Mono, Press Start 2P (OFL).</p>
+    </div>
+    <div>
+      <p>Сгенерированные номера правильные по форме, но это не настоящие счета — только для тестов.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // переключатель темы (работает даже до загрузки библиотеки)
+  (function () {
+    const root = document.documentElement;
+    const sync = () => document.querySelectorAll("[data-set-theme]").forEach((b) =>
+      b.setAttribute("aria-pressed", b.dataset.setTheme === root.dataset.theme));
+    document.querySelectorAll("[data-set-theme]").forEach((b) => b.addEventListener("click", () => {
+      root.dataset.theme = b.dataset.setTheme;
+      try { localStorage.setItem("iban4j-theme", b.dataset.setTheme); } catch (_) {}
+      sync();
+    }));
+    sync();
+  })();
+</script>
 
 <script type="module">
   const $ = (s) => document.querySelector(s);
@@ -689,6 +968,34 @@
     e.preventDefault(); ta.classList.remove("drag");
     if (e.dataTransfer.files.length) readFile(e.dataTransfer.files[0]);
   });
+
+  // ---------- первый экран: кнопки и живой пример ----------
+  $("#country-count").textContent = countries.length;
+  document.querySelectorAll("[data-goto]").forEach((a) => a.addEventListener("click", () => openTab(a.dataset.goto)));
+
+  const LABELS = { country: "Страна", check: "Контрольные цифры", bank_code: "Код банка", bank_code_ext: "Доп. код банка",
+    branch_code: "Отделение", account_number: "Номер счёта", national_check_digit: "Нац. контрольная цифра",
+    account_type: "Тип счёта", owner_account_number: "Тип владельца", identification_number: "Идент. номер" };
+  const LIVE = ["DE", "FR", "MD", "IT", "GB", "ES", "NL", "RO", "PL", "CH", "UA", "BE"].filter((c) => byCode[c]);
+  let liveIdx = 0;
+  function liveTick() {
+    const code = LIVE[liveIdx++ % LIVE.length];
+    const r = JSON.parse(lib.random(code));
+    if (!r.ok) return;
+    const el = $("#live-iban");
+    el.classList.add("fade");
+    setTimeout(() => {
+      el.innerHTML = colorize(r.iban, r.segments);
+      $("#live-country").textContent = `${ruName(code, code)} · ${r.iban.length} символов · проверено iban4j ✓`;
+      $("#live-flag").textContent = code;
+      $("#live-legend").innerHTML = r.segments.map((s) =>
+        `<span><span class="dot" style="--c:var(--seg-${s.kind})"></span>${esc(LABELS[s.kind] || s.kind)}</span>`).join("");
+      el.classList.remove("fade");
+    }, 250);
+  }
+  liveTick();
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduce) setInterval(() => { if (!document.hidden) liveTick(); }, 3200);
 </script>
 </body>
 </html>
