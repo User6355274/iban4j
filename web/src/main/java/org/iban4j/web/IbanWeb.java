@@ -1,11 +1,16 @@
 package org.iban4j.web;
 
+import io.nayuki.qrcodegen.DataTooLongException;
+import io.nayuki.qrcodegen.QrCode;
+import io.nayuki.qrcodegen.QrSegment;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.iban4j.Bic;
 import org.iban4j.BicFormatException;
 import org.iban4j.BicUtil;
 import org.iban4j.CountryCode;
+import org.iban4j.EpcQrCode;
 import org.iban4j.Iban;
 import org.iban4j.Iban4jException;
 import org.iban4j.IbanFormatException;
@@ -217,6 +222,132 @@ public final class IbanWeb {
     }
   }
 
+
+  /**
+   * QR-код для оплаты по стандарту EPC069-12 («GiroCode», SEPA-перевод в евро).
+   * Данные для QR готовит библиотека (EpcQrCode), картинку рисует генератор Nayuki (SVG).
+   */
+  @JSExport
+  public static String epcQr(String name, String ibanInput, String bicInput, String amountInput,
+      String text) {
+    String ibanValue = clean(ibanInput);
+    if (ibanValue.isEmpty()) {
+      return error("Укажите IBAN получателя.");
+    }
+    String n = name == null ? "" : name.trim();
+    if (n.isEmpty()) {
+      return error("Укажите имя получателя.");
+    }
+    Iban iban;
+    try {
+      IbanUtil.validate(ibanValue);
+      iban = Iban.valueOf(ibanValue);
+    } catch (InvalidCheckDigitException e) {
+      return error("IBAN: неверная контрольная сумма — в номере опечатка.");
+    } catch (UnsupportedCountryException e) {
+      return error("IBAN: страна не поддерживается или код страны неверный.");
+    } catch (IbanFormatException e) {
+      return error("IBAN: " + formatProblem(e, ibanValue));
+    }
+
+    try {
+      EpcQrCode.Builder b = EpcQrCode.builder().beneficiaryName(n).iban(iban);
+
+      String bicValue = clean(bicInput);
+      if (!bicValue.isEmpty()) {
+        try {
+          BicUtil.validate(bicValue);
+        } catch (BicFormatException | UnsupportedCountryException e) {
+          return error("BIC указан неверно (нужно 8 или 11 символов, например DEUTDEFF).");
+        }
+        b.bic(Bic.valueOf(bicValue));
+      }
+
+      String a = amountInput == null ? ""
+          : amountInput.replace("\u00a0", "").replace(" ", "").replace(',', '.');
+      if (!a.isEmpty()) {
+        BigDecimal amount;
+        try {
+          amount = new BigDecimal(a);
+        } catch (NumberFormatException e) {
+          return error("Сумма указана неверно. Пример: 25 или 25,50");
+        }
+        b.amount(amount);
+      }
+
+      String t = text == null ? "" : text.trim();
+      if (!t.isEmpty()) {
+        b.remittanceText(t);
+      }
+
+      String payload = b.build().getPayload();
+      QrCode qr = QrCode.encodeSegments(QrSegment.makeSegments(payload), QrCode.Ecc.MEDIUM, 1, 13, -1,
+          false);
+
+      StringBuilder sb = new StringBuilder("{\"ok\":true")
+          .append(",\"payload\":").append(q(payload))
+          .append(",\"svg\":").append(q(toSvg(qr, 4)))
+          .append(",\"version\":").append(qr.version)
+          .append(",\"iban\":").append(q(iban.toFormattedString()))
+          .append(",\"country\":").append(q(iban.getCountryCode().getAlpha2()))
+          .append('}');
+      return sb.toString();
+    } catch (DataTooLongException e) {
+      return error("Слишком много текста для QR-кода — сократите назначение платежа.");
+    } catch (IllegalArgumentException e) {
+      return error(epcProblem(e.getMessage()));
+    } catch (RuntimeException e) {
+      return error("Непредвиденная ошибка: " + e);
+    }
+  }
+
+  static String epcProblem(String m) {
+    if (m == null) {
+      return "Не удалось подготовить данные для QR.";
+    }
+    if (m.contains("outside the EEA")) {
+      return "Для счетов вне Европейской экономической зоны нужно указать BIC банка получателя.";
+    }
+    if (m.startsWith("beneficiaryName must not exceed")) {
+      return "Имя получателя слишком длинное — максимум 70 символов.";
+    }
+    if (m.startsWith("remittanceText must not exceed")) {
+      return "Назначение платежа слишком длинное — максимум 140 символов.";
+    }
+    if (m.contains("line separators")) {
+      return "Уберите переносы строк из текста.";
+    }
+    if (m.startsWith("amount must be between")) {
+      return "Сумма должна быть от 0,01 до 999 999 999,99 EUR.";
+    }
+    if (m.startsWith("amount must have at most two")) {
+      return "В сумме не больше двух знаков после запятой.";
+    }
+    if (m.contains("not supported by")) {
+      return "В тексте есть символы, которые нельзя закодировать.";
+    }
+    if (m.contains("331 bytes")) {
+      return "Слишком много текста: данные QR-кода ограничены 331 байтом.";
+    }
+    return "Не удалось подготовить данные для QR: " + m;
+  }
+
+  static String toSvg(QrCode qr, int border) {
+    int size = qr.size + border * 2;
+    StringBuilder sb = new StringBuilder()
+        .append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ").append(size).append(' ')
+        .append(size).append("\" shape-rendering=\"crispEdges\">")
+        .append("<rect width=\"100%\" height=\"100%\" fill=\"#ffffff\"/><path d=\"");
+    for (int y = 0; y < qr.size; y++) {
+      for (int x = 0; x < qr.size; x++) {
+        if (qr.getModule(x, y)) {
+          sb.append('M').append(x + border).append(',').append(y + border).append("h1v1h-1z");
+        }
+      }
+    }
+    return sb.append("\" fill=\"#000000\"/></svg>").toString();
+  }
+
   // ---------------- вспомогательное ----------------
 
   static Iban findNationalCheckDigit(Iban.Builder b, BbanStructureEntry entry) {
@@ -243,11 +374,21 @@ public final class IbanWeb {
         .append(",\"nationalRule\":").append(hasRule)
         .append(",\"nationalOk\":").append(nationalOk)
         .append(",\"parts\":[");
-    part(sb, "Страна", iban.getCountryCode().getAlpha2() + " — " + iban.getCountryCode().getName(), true);
-    part(sb, "Контрольные цифры IBAN", iban.getCheckDigit(), false);
+    part(sb, "Страна", iban.getCountryCode().getAlpha2() + " — " + iban.getCountryCode().getName(), true,
+        "country");
+    part(sb, "Контрольные цифры IBAN", iban.getCheckDigit(), false, "check");
     BbanStructure structure = BbanStructure.forCountry(iban.getCountryCode());
     for (BbanStructureEntry e : structure.getEntries()) {
-      part(sb, fieldName(e.getEntryType()), get(iban, e.getEntryType()), false);
+      part(sb, fieldName(e.getEntryType()), get(iban, e.getEntryType()), false, e.getEntryType().name());
+    }
+    // позиции частей внутри IBAN (без пробелов) — для подсветки
+    sb.append("],\"segments\":[");
+    segment(sb, "country", 0, 2, true);
+    segment(sb, "check", 2, 2, false);
+    int pos = 4;
+    for (BbanStructureEntry e : structure.getEntries()) {
+      segment(sb, e.getEntryType().name(), pos, e.getLength(), false);
+      pos += e.getLength();
     }
     sb.append("],\"notes\":[");
     for (int i = 0; i < notes.size(); i++) {
@@ -260,10 +401,26 @@ public final class IbanWeb {
   }
 
   static void part(StringBuilder sb, String label, String value, boolean first) {
+    part(sb, label, value, first, null);
+  }
+
+  static void part(StringBuilder sb, String label, String value, boolean first, String kind) {
     if (!first) {
       sb.append(',');
     }
-    sb.append("{\"label\":").append(q(label)).append(",\"value\":").append(q(value)).append('}');
+    sb.append("{\"label\":").append(q(label)).append(",\"value\":").append(q(value));
+    if (kind != null) {
+      sb.append(",\"kind\":").append(q(kind));
+    }
+    sb.append('}');
+  }
+
+  static void segment(StringBuilder sb, String kind, int start, int length, boolean first) {
+    if (!first) {
+      sb.append(',');
+    }
+    sb.append("{\"kind\":").append(q(kind)).append(",\"start\":").append(start)
+        .append(",\"length\":").append(length).append('}');
   }
 
   static String formatProblem(IbanFormatException e, String s) {
@@ -277,8 +434,8 @@ public final class IbanWeb {
     {
       BbanStructure st = BbanStructure.forCountry(cc);
       if (st != null && s.length() != st.getBbanLength() + 4) {
-        return "Неверная длина: для страны " + cc.getName() + " IBAN должен содержать "
-            + (st.getBbanLength() + 4) + " символов, а введено " + s.length() + ".";
+        return "Неверная длина: IBAN страны " + cc.getAlpha2() + " должен содержать "
+            + (st.getBbanLength() + 4) + " симв., а здесь " + s.length() + ".";
       }
     }
     return "Неверный формат: " + e.getMessage();
