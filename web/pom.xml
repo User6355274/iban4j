@@ -41,47 +41,31 @@
 
   <build>
     <plugins>
-      <!-- Берём исходники самой библиотеки из ../src/main/java -->
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.6.0</version>
-        <executions>
-          <execution>
-            <id>add-iban4j-sources</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>${project.basedir}/../src/main/java</source>
-              </sources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.13.0</version>
-        <configuration>
-          <release>11</release>
-          <encoding>UTF-8</encoding>
-          <excludes>
-            <!-- module-info библиотеки здесь не нужен -->
-            <exclude>**/module-info.java</exclude>
-          </excludes>
-        </configuration>
-      </plugin>
-
-      <!-- Копируем страницу (index.html и т.д.) в папку сайта -->
+      <!-- Копируем исходники библиотеки из ../src/main/java (без module-info.java,
+           иначе компилятор считает проект модульным) -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.3.1</version>
         <executions>
+          <execution>
+            <id>copy-iban4j-sources</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/generated-sources/iban4j</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/../src/main/java</directory>
+                  <excludes>
+                    <exclude>module-info.java</exclude>
+                  </excludes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
           <execution>
             <id>copy-webapp</id>
             <phase>process-resources</phase>
@@ -98,6 +82,37 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+
+      <!-- ...и подключаем их как исходный код -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <id>add-iban4j-sources</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated-sources/iban4j</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <release>11</release>
+          <encoding>UTF-8</encoding>
+        </configuration>
       </plugin>
 
       <!-- Java -> JavaScript -->
