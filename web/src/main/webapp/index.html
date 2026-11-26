@@ -1,23 +1,17 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="dark">
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>IBAN-помощник · iban4j в браузере</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2310b981'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='700' fill='%2309090b' text-anchor='middle'%3EIB%3C/text%3E%3C/svg%3E">
-  <meta name="description" content="Собрать, проверить и расшифровать IBAN и BIC, проверить список и сделать QR-код для оплаты. Работает на Java-библиотеке iban4j прямо в браузере.">
-  <script>
-    // тема: запоминаем выбор, без мигания при загрузке
-    try { const t = localStorage.getItem("iban4j-theme"); if (t === "yellow" || t === "dark") document.documentElement.dataset.theme = t; } catch (_) {}
-  </script>
+  <title>IBANIX — генерация и валидация IBAN</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2310b981'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='700' fill='%2309090b' text-anchor='middle'%3EIX%3C/text%3E%3C/svg%3E">
+  <meta name="description" content="IBANIX: генерация и валидация IBAN, проверка списков, расшифровка BIC и QR-код для оплаты. Работает на библиотеке iban4j прямо в браузере.">
   <style>
     @font-face { font-family: "Onest"; src: url("fonts/Onest.woff") format("woff"); font-weight: 100 900; font-display: swap; }
     @font-face { font-family: "JetBrains Mono"; src: url("fonts/JetBrainsMono.woff") format("woff"); font-weight: 100 800; font-display: swap; }
-    @font-face { font-family: "Martian Mono"; src: url("fonts/MartianMono.woff") format("woff"); font-weight: 100 800; font-display: swap; }
-    @font-face { font-family: "Press Start 2P"; src: url("fonts/PressStart2P.woff") format("woff"); font-display: swap; }
 
-    /* ---------- тема «Тёмная» (в духе metastrip.ai) ---------- */
-    :root, [data-theme="dark"] {
+    /* ---------- оформление ---------- */
+    :root {
       --bg: #09090b;
       --surface: #0f0f17;
       --surface-2: #14141f;
@@ -41,48 +35,10 @@
       --body: "Onest", -apple-system, "Segoe UI", sans-serif;
       --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
       --body-size: 16px;
-      --h1: clamp(38px, 6.2vw, 68px);
-      --h2: clamp(28px, 3.6vw, 40px);
-      --glow: radial-gradient(900px 420px at 50% -120px, rgba(16,185,129,0.16), transparent 70%);
-      --seg-country: #a5b4fc; --seg-check: #fb7185; --seg-bank_code: #67e8f9;
-      --seg-bank_code_ext: #5eead4; --seg-branch_code: #fbbf24; --seg-account_number: #6ee7b7;
-      --seg-national_check_digit: #f9a8d4; --seg-account_type: #c4b5fd;
-      --seg-owner_account_number: #fde047; --seg-identification_number: #93c5fd;
+      --h1: clamp(30px, 4.2vw, 44px);
+      --h2: clamp(22px, 2.6vw, 28px);
+      --glow: radial-gradient(900px 360px at 50% -160px, rgba(16,185,129,0.08), transparent 70%);
       color-scheme: dark;
-    }
-    /* ---------- тема «Жёлтая» (в духе hmntch.org) ---------- */
-    [data-theme="yellow"] {
-      --bg: #fff000;
-      --surface: #ffffff;
-      --surface-2: #ffffff;
-      --line: #060606;
-      --line-strong: #060606;
-      --ink: #060606;
-      --muted: #4a4a4a;
-      --accent: #060606;
-      --accent-ink: #fff000;
-      --accent-soft: #fff000;
-      --accent-line: #060606;
-      --warn: #7a4a00; --warn-soft: #ffe7b0; --warn-line: #060606;
-      --bad: #b00020;  --bad-soft: #ffd9de;  --bad-line: #060606;
-      --field: #ffffff;
-      --radius: 0px;
-      --radius-sm: 0px;
-      --display: "Press Start 2P", "Martian Mono", monospace;
-      --display-weight: 400;
-      --display-case: uppercase;
-      --display-track: -0.02em;
-      --body: "Martian Mono", ui-monospace, monospace;
-      --mono: "Martian Mono", ui-monospace, monospace;
-      --body-size: 14px;
-      --h1: clamp(24px, 4.4vw, 52px);
-      --h2: clamp(18px, 2.6vw, 28px);
-      --glow: none;
-      --seg-country: #4f46e5; --seg-check: #e11d48; --seg-bank_code: #0891b2;
-      --seg-bank_code_ext: #0d9488; --seg-branch_code: #d97706; --seg-account_number: #16a34a;
-      --seg-national_check_digit: #db2777; --seg-account_type: #7c3aed;
-      --seg-owner_account_number: #a16207; --seg-identification_number: #2563eb;
-      color-scheme: light;
     }
 
     * { box-sizing: border-box; }
@@ -99,7 +55,6 @@
       font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--accent); margin: 0 0 14px;
     }
-    [data-theme="yellow"] .eyebrow { color: var(--muted); letter-spacing: 0.12em; font-size: 11px; }
 
     /* ---------- верхняя панель ---------- */
     .topbar {
@@ -114,78 +69,22 @@
       width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px;
       background: var(--accent); color: var(--accent-ink); font-family: var(--mono); font-size: 12px; font-weight: 800;
     }
-    [data-theme="yellow"] .logo-mark { border-radius: 0; }
-    [data-theme="yellow"] .logo { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.02em; }
     .nav { display: flex; gap: 20px; font-size: 14px; color: var(--muted); }
     .nav a { text-decoration: none; }
     .nav a:hover { color: var(--ink); }
-    .theme-switch {
-      margin-left: auto; display: flex; border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
-      padding: 3px; gap: 2px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
-    }
-    .theme-switch button {
-      font: inherit; border: none; background: transparent; color: var(--muted); padding: 6px 10px;
-      border-radius: calc(var(--radius-sm) - 3px); cursor: pointer;
-    }
-    .theme-switch button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 
     /* ---------- первый экран ---------- */
-    .hero { background: var(--glow); padding: 72px 0 64px; border-bottom: 1px solid var(--line); }
-    .badge {
-      display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px;
-      letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
-      border: 1px solid var(--accent-line); background: var(--accent-soft); border-radius: 999px; padding: 6px 12px;
-      margin-bottom: 26px;
-    }
-    .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-    [data-theme="yellow"] .badge { border-radius: 0; background: transparent; color: var(--ink); border-color: var(--ink); }
+    .hero { background: var(--glow); padding: 56px 0 44px; border-bottom: 1px solid var(--line); }
     h1, h2, h3 { font-family: var(--display); font-weight: var(--display-weight); text-transform: var(--display-case); letter-spacing: var(--display-track); }
-    h1 { font-size: var(--h1); line-height: 1.04; margin: 0 0 24px; }
-    [data-theme="yellow"] h1 { line-height: 1.25; }
-    h1 .accent { color: var(--accent); }
-    [data-theme="yellow"] h1 .accent { color: var(--ink); background: var(--surface); padding: 0 .15em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-    .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; margin-top: 8px; }
-    .hero-lead { font-size: 18px; color: var(--muted); margin: 0 0 22px; max-width: 46ch; }
-    [data-theme="yellow"] .hero-lead { font-size: 14px; color: var(--ink); }
-    .trust { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); margin: 0 0 28px; padding: 0; list-style: none; }
-    .trust li::before { content: "✓ "; color: var(--accent); font-weight: 700; }
-    .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+    h1 { font-size: var(--h1); line-height: 1.1; margin: 0 0 14px; }
+    .hero-lead { font-size: 17px; color: var(--muted); margin: 0; max-width: 62ch; }
 
-    /* живой пример */
-    .live { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); overflow: hidden; }
-    [data-theme="yellow"] .live { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-    .live-head {
-      display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      padding: 10px 16px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 11px;
-      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
-    }
-    [data-theme="yellow"] .live-head { border-color: #333; color: #bdbdbd; }
-    .live-head .dot-live { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 8px; animation: pulse 1.6s infinite; }
-    [data-theme="yellow"] .live-head .dot-live { background: var(--bg); border-radius: 0; }
-    @keyframes pulse { 50% { opacity: .25; } }
-    .live-body { padding: 22px 20px 18px; }
-    .live-iban { font-family: var(--mono); font-size: clamp(17px, 2.1vw, 22px); letter-spacing: 0.02em; word-break: break-all; min-height: 2.2em; line-height: 1.7; transition: opacity .25s; }
-    .live-iban.fade { opacity: 0; }
-    .live-country { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 6px; }
-    [data-theme="yellow"] .live-country { color: #bdbdbd; }
-    .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); font-size: 12.5px; }
-    [data-theme="yellow"] .legend { border-color: #333; }
-    .legend span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    [data-theme="yellow"] .live {
-      --seg-country: #a5b4fc; --seg-check: #fb7185; --seg-bank_code: #67e8f9;
-      --seg-bank_code_ext: #5eead4; --seg-branch_code: #fbbf24; --seg-account_number: #6ee7b7;
-      --seg-national_check_digit: #f9a8d4; --seg-account_type: #c4b5fd;
-      --seg-owner_account_number: #fde047; --seg-identification_number: #93c5fd;
-    }
-    [data-theme="yellow"] .live .seg { color: #ffffff; background: color-mix(in srgb, var(--c) 30%, transparent); }
 
     /* ---------- разделы ---------- */
     .section { padding: 72px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 60px; }
-    [data-theme="yellow"] .section { background: var(--surface); }
     .section-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
     .section-head h2 { font-size: var(--h2); line-height: 1.1; margin: 0; }
     .section-head p { margin: 0; color: var(--muted); max-width: 42ch; font-size: 15px; }
-    [data-theme="yellow"] .section-head p { font-size: 13px; }
 
     /* вкладки */
     .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 12px; }
@@ -199,14 +98,9 @@
     .tab:hover { color: var(--ink); border-color: var(--line-strong); }
     .tab .tab-n { color: var(--accent); margin-right: 8px; opacity: .9; }
     .tab[aria-selected="true"] { background: var(--surface-2); color: var(--ink); border-color: var(--accent-line); }
-    [data-theme="yellow"] .tab { color: var(--ink); }
-    [data-theme="yellow"] .tab .tab-n { color: var(--muted); }
-    [data-theme="yellow"] .tab[aria-selected="true"] { background: var(--ink); color: var(--bg); }
-    [data-theme="yellow"] .tab[aria-selected="true"] .tab-n { color: var(--bg); }
     .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
     .panel[hidden] { display: none; }
     .lead { margin: 0 0 22px; color: var(--muted); font-size: 15px; max-width: 70ch; }
-    [data-theme="yellow"] .lead { font-size: 13px; }
 
     /* поля */
     label {
@@ -219,19 +113,16 @@
       border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 12px 14px;
       transition: border-color .15s, box-shadow .15s;
     }
-    [data-theme="yellow"] input, [data-theme="yellow"] select, [data-theme="yellow"] textarea { font-size: 14px; }
     input.mono, textarea.mono, #fields input { font-family: var(--mono); letter-spacing: 0.03em; }
     textarea { resize: vertical; min-height: 190px; font-size: 14px; line-height: 1.6; }
     textarea.drop { border-style: dashed; border-color: var(--accent-line); }
     textarea.drag { background: var(--accent-soft); }
     input::placeholder, textarea::placeholder { color: var(--muted); opacity: .6; letter-spacing: 0; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-    [data-theme="yellow"] input:focus, [data-theme="yellow"] select:focus, [data-theme="yellow"] textarea:focus { box-shadow: 4px 4px 0 var(--ink); }
     .field { margin-bottom: 18px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0 18px; }
     .counter { float: right; font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0; }
     .counter.ok { color: var(--accent); }
-    [data-theme="yellow"] .counter.ok { font-weight: 700; }
 
     /* кнопки */
     .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
@@ -245,13 +136,11 @@
     .btn-primary:hover, button.primary:hover { filter: brightness(1.08); }
     .btn-secondary, button.secondary, label.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line-strong); }
     .btn-secondary:hover, button.secondary:hover, label.secondary:hover { border-color: var(--accent); }
-    [data-theme="yellow"] .btn:active, [data-theme="yellow"] button.primary:active, [data-theme="yellow"] button.secondary:active { transform: translate(2px, 2px); }
     button.link {
       font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
       background: none; border: none; padding: 0; color: var(--accent); cursor: pointer;
       text-decoration: underline; text-underline-offset: 4px;
     }
-    [data-theme="yellow"] button.link { color: var(--ink); }
     button:disabled { opacity: 0.5; cursor: wait; }
 
     /* результаты */
@@ -260,15 +149,9 @@
     .card.ok { background: var(--accent-soft); border-color: var(--accent-line); }
     .card.warn { background: var(--warn-soft); border-color: var(--warn-line); }
     .card.bad { background: var(--bad-soft); border-color: var(--bad-line); color: var(--bad); }
-    [data-theme="yellow"] .card { border-width: 1px; box-shadow: 5px 5px 0 var(--ink); }
     .status { font-family: var(--mono); font-weight: 600; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 12px; }
     .card.ok .status { color: var(--accent); }
     .card.warn .status { color: var(--warn); }
-    [data-theme="yellow"] .card.ok { background: var(--surface); }
-    [data-theme="yellow"] .card .status { display: inline-block; padding: 4px 8px; }
-    [data-theme="yellow"] .card.ok .status { background: var(--ink); color: var(--bg); }
-    [data-theme="yellow"] .card.warn .status { background: var(--warn); color: #fff; }
-    [data-theme="yellow"] .card.bad .status { background: var(--bad); color: #fff; margin-bottom: 0; }
     .big {
       font-family: var(--mono); font-size: clamp(19px, 2.6vw, 26px); letter-spacing: 0.02em; word-break: break-all;
       display: flex; align-items: center; gap: 14px; flex-wrap: wrap; line-height: 1.6;
@@ -278,16 +161,10 @@
       border: 1px solid currentColor; background: transparent; color: inherit; opacity: 0.75;
       border-radius: 6px; padding: 5px 10px; cursor: pointer;
     }
-    [data-theme="yellow"] .copy { border-radius: 0; }
     .raw { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-top: 4px; word-break: break-all; }
-    .seg { border-radius: 4px; padding: 2px 0; background: color-mix(in srgb, var(--c) 22%, transparent); box-shadow: inset 0 -2px 0 var(--c); }
-    [data-theme="yellow"] .seg { border-radius: 0; background: color-mix(in srgb, var(--c) 28%, transparent); }
-    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--c); margin-right: 8px; vertical-align: 0; flex: none; }
-    [data-theme="yellow"] .dot { border-radius: 0; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
     td, th { padding: 8px 0; border-top: 1px solid var(--line); vertical-align: top; text-align: left; }
-    [data-theme="yellow"] td, [data-theme="yellow"] th { border-top-color: rgba(0,0,0,.18); }
     .parts td:first-child { color: var(--muted); width: 45%; padding-right: 12px; }
     .parts td:last-child { font-family: var(--mono); }
     .card-footer { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
@@ -307,7 +184,6 @@
     .qr-msg { margin-top: 12px; font-size: 13px; }
     .qr-msg.bad { color: var(--bad); }
     .qr-msg.ok { color: var(--accent); }
-    [data-theme="yellow"] .qr-msg.ok { color: var(--ink); }
     details { margin-top: 12px; font-size: 13px; }
     summary { cursor: pointer; color: var(--muted); font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; }
     pre { font-family: var(--mono); font-size: 12px; background: var(--field); border: 1px solid var(--line); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; margin: 8px 0 0; }
@@ -315,12 +191,10 @@
     /* список */
     .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; }
     .chip { font-family: var(--mono); font-size: 12px; padding: 5px 11px; border-radius: 999px; background: var(--field); border: 1px solid var(--line-strong); }
-    [data-theme="yellow"] .chip { border-radius: 0; }
     .chip b { font-variant-numeric: tabular-nums; }
     .chip.ok { color: var(--accent); border-color: var(--accent-line); }
     .chip.warn { color: var(--warn); border-color: var(--warn-line); }
     .chip.bad { color: var(--bad); border-color: var(--bad-line); }
-    [data-theme="yellow"] .chip.ok { background: var(--bg); color: var(--ink); }
     .bulk-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
     .bulk-tools select { width: auto; font-size: 14px; padding: 9px 12px; }
     .bulk-table { font-size: 13.5px; }
@@ -332,7 +206,6 @@
     .bulk-table tr.ok td.st { color: var(--accent); }
     .bulk-table tr.warn td.st { color: var(--warn); }
     .bulk-table tr.bad td.st { color: var(--bad); }
-    [data-theme="yellow"] .bulk-table tr.ok td.st { color: #0a7a2f; }
     .bulk-table td.d { color: var(--muted); }
     .table-wrap { overflow-x: auto; }
     .muted { color: var(--muted); font-size: 13px; }
@@ -340,21 +213,16 @@
     /* как это работает */
     .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .step { border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; background: var(--surface); }
-    [data-theme="yellow"] .step { background: var(--bg); border-color: var(--ink); }
     .step-n { font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 18px; }
-    [data-theme="yellow"] .step-n { color: var(--ink); }
     .step h3 { font-size: 20px; margin: 0 0 10px; line-height: 1.2; }
-    [data-theme="yellow"] .step h3 { font-size: 13px; line-height: 1.5; }
     .step p { margin: 0; color: var(--muted); font-size: 15px; }
-    [data-theme="yellow"] .step p { color: var(--ink); font-size: 12.5px; }
 
     footer { padding: 32px 0 48px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
-    [data-theme="yellow"] footer { background: var(--ink); color: #bdbdbd; }
     footer .wrap { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
     footer p { margin: 0 0 6px; }
 
     @media (max-width: 860px) {
-      .hero-grid, .steps { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
       .nav { display: none; }
     }
     @media (max-width: 640px) {
@@ -366,55 +234,29 @@
       .wrap { padding: 0 16px; }
       .bulk-table .d { display: none; }
       .bulk-table td.iban { white-space: normal; word-break: break-all; }
-      .legend { grid-template-columns: 1fr; }
     }
-    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .live-head .dot-live { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
 </head>
 <body>
 <header class="topbar">
   <div class="wrap">
-    <a class="logo" href="#top"><span class="logo-mark">IB</span>IBAN-помощник</a>
+    <a class="logo" href="#top"><span class="logo-mark">IX</span>IBANIX</a>
     <nav class="nav">
       <a href="#tool">Инструменты</a>
       <a href="#how">Как это работает</a>
       <a href="https://github.com/User6355274/iban4j">GitHub</a>
     </nav>
-    <div class="theme-switch" role="group" aria-label="Тема оформления">
-      <button type="button" data-set-theme="dark">Тёмная</button>
-      <button type="button" data-set-theme="yellow">Жёлтая</button>
-    </div>
   </div>
 </header>
 
 <main id="top">
   <section class="hero">
     <div class="wrap">
-      <span class="badge">Приватно · бесплатно · прямо в браузере</span>
-      <h1>IBAN без ошибок.<br><span class="accent">Проверка за секунду.</span></h1>
-      <div class="hero-grid">
-        <div>
-          <p class="hero-lead">Соберите IBAN из кода банка и номера счёта, проверьте один номер или целый список,
-            сделайте QR-код для оплаты. Номера никуда не отправляются — всё считается у вас.</p>
-          <ul class="trust">
-            <li>Без загрузки на сервер</li>
-            <li>Без регистрации</li>
-            <li><span id="country-count">100+</span> стран</li>
-          </ul>
-          <div class="hero-cta">
-            <a class="btn btn-primary" href="#tool" data-goto="build">Собрать IBAN</a>
-            <a class="btn btn-secondary" href="#tool" data-goto="bulk">Проверить список</a>
-          </div>
-        </div>
-        <div class="live" aria-label="Пример: как устроен IBAN">
-          <div class="live-head"><span><span class="dot-live"></span>Как устроен IBAN</span><span id="live-flag">—</span></div>
-          <div class="live-body">
-            <div class="live-iban" id="live-iban">&nbsp;</div>
-            <div class="live-country" id="live-country">Загрузка библиотеки…</div>
-            <div class="legend" id="live-legend"></div>
-          </div>
-        </div>
-      </div>
+      <p class="eyebrow">Внутренний инструмент</p>
+      <h1>Генерация и валидация IBAN</h1>
+      <p class="hero-lead">Сборка IBAN из реквизитов, проверка одного номера или списка, расшифровка BIC
+        и QR-код для оплаты. Расчёты выполняются в браузере на библиотеке iban4j.</p>
     </div>
   </section>
 
@@ -459,7 +301,7 @@
       <form id="check-form" autocomplete="off">
         <div class="field">
           <label for="iban-input">IBAN</label>
-          <input id="iban-input" class="mono" placeholder="например, MD24 AG00 0225 1000 1310 4168" spellcheck="false">
+          <input id="iban-input" class="mono" placeholder="например, GB29 NWBK 6016 1331 9268 19" spellcheck="false">
         </div>
         <div class="actions"><button class="primary" type="submit" disabled>Проверить</button></div>
       </form>
@@ -473,7 +315,7 @@
       <div class="field">
         <label for="bulk-input">Список <span class="hint">— или перетащите CSV-файл в поле</span></label>
         <textarea id="bulk-input" class="mono drop" spellcheck="false"
-          placeholder="DE89 3704 0044 0532 0130 00&#10;GB29NWBK60161331926819&#10;Иван Петров;MD24AG000225100013104168;150"></textarea>
+          placeholder="GB29 NWBK 6016 1331 9268 19&#10;GB33BUKB20201555555555&#10;John Smith;GB82WEST12345698765432;150"></textarea>
       </div>
       <div class="actions">
         <button class="primary" type="button" id="bulk-run" disabled>Проверить список</button>
@@ -493,11 +335,11 @@
         <form id="qr-form" autocomplete="off">
           <div class="field">
             <label for="qr-name">Получатель <span class="hint">— имя или название, до 70 символов</span></label>
-            <input id="qr-name" maxlength="70" placeholder="например, Max Mustermann">
+            <input id="qr-name" maxlength="70" placeholder="например, John Smith">
           </div>
           <div class="field">
             <label for="qr-iban">IBAN получателя</label>
-            <input id="qr-iban" class="mono" placeholder="например, DE89 3704 0044 0532 0130 00" spellcheck="false">
+            <input id="qr-iban" class="mono" placeholder="например, GB29 NWBK 6016 1331 9268 19" spellcheck="false">
           </div>
           <div class="grid">
             <div class="field">
@@ -506,12 +348,12 @@
             </div>
             <div class="field">
               <label for="qr-bic">BIC банка <span class="hint">— если вне ЕЭЗ</span></label>
-              <input id="qr-bic" class="mono" placeholder="необязательно" spellcheck="false">
+              <input id="qr-bic" class="mono" placeholder="например, NWBKGB2L" spellcheck="false">
             </div>
           </div>
           <div class="field">
             <label for="qr-text">Назначение платежа <span class="hint">— необязательно, до 140 символов</span></label>
-            <input id="qr-text" maxlength="140" placeholder="например, Счёт №117">
+            <input id="qr-text" maxlength="140" placeholder="например, Invoice 117">
           </div>
         </form>
         <div class="qr-side">
@@ -531,11 +373,11 @@
 
     <!-- Проверить BIC -->
     <section class="panel" id="panel-bic" role="tabpanel" hidden>
-      <p class="lead">BIC (он же SWIFT-код) — 8 или 11 символов, например DEUTDEFF500.</p>
+      <p class="lead">BIC (он же SWIFT-код) — 8 или 11 символов, например NWBKGB2L.</p>
       <form id="bic-form" autocomplete="off">
         <div class="field">
           <label for="bic-input">BIC / SWIFT</label>
-          <input id="bic-input" class="mono" placeholder="например, DEUTDEFF500" spellcheck="false">
+          <input id="bic-input" class="mono" placeholder="например, NWBKGB2L" spellcheck="false">
         </div>
         <div class="actions"><button class="primary" type="submit" disabled>Проверить</button></div>
       </form>
@@ -550,7 +392,7 @@
       <div class="section-head">
         <div>
           <p class="eyebrow">02 — Как это работает</p>
-          <h2>Никаких серверов.</h2>
+          <h2>Всё выполняется в браузере</h2>
         </div>
         <p>Можно даже отключить интернет после загрузки страницы — всё продолжит работать.</p>
       </div>
@@ -578,8 +420,8 @@
 <footer>
   <div class="wrap">
     <div>
-      <p>Работает на <a href="https://github.com/arturmkrtchyan/iban4j">iban4j</a> (Apache 2.0) и <a href="https://teavm.org">TeaVM</a>.</p>
-      <p>QR-коды: <a href="https://www.nayuki.io/page/qr-code-generator-library">QR Code generator</a> (Project Nayuki, MIT). Шрифты: Onest, JetBrains Mono, Martian Mono, Press Start 2P (OFL).</p>
+      <p>IBANIX · работает на <a href="https://github.com/arturmkrtchyan/iban4j">iban4j</a> (Apache 2.0) и <a href="https://teavm.org">TeaVM</a>.</p>
+      <p>QR-коды: <a href="https://www.nayuki.io/page/qr-code-generator-library">QR Code generator</a> (Project Nayuki, MIT). Шрифты: Onest, JetBrains Mono (OFL).</p>
     </div>
     <div>
       <p>Сгенерированные номера правильные по форме, но это не настоящие счета — только для тестов.</p>
@@ -587,20 +429,6 @@
   </div>
 </footer>
 
-<script>
-  // переключатель темы (работает даже до загрузки библиотеки)
-  (function () {
-    const root = document.documentElement;
-    const sync = () => document.querySelectorAll("[data-set-theme]").forEach((b) =>
-      b.setAttribute("aria-pressed", b.dataset.setTheme === root.dataset.theme));
-    document.querySelectorAll("[data-set-theme]").forEach((b) => b.addEventListener("click", () => {
-      root.dataset.theme = b.dataset.setTheme;
-      try { localStorage.setItem("iban4j-theme", b.dataset.setTheme); } catch (_) {}
-      sync();
-    }));
-    sync();
-  })();
-</script>
 
 <script type="module">
   const $ = (s) => document.querySelector(s);
@@ -639,7 +467,7 @@
   sel.innerHTML = countries
     .map((c) => `<option value="${c.code}">${esc(c.ru)} (${c.code}) — ${c.length} симв.</option>`)
     .join("");
-  sel.value = byCode.MD ? "MD" : countries[0].code;
+  sel.value = byCode.GB ? "GB" : countries[0].code;
   sel.disabled = false;
   document.querySelectorAll("button[disabled]").forEach((b) => (b.disabled = false));
 
@@ -656,7 +484,7 @@
         ? (c.canCompute ? "пусто — вычислим сами" : "пусто — случайное")
         : `${f.length} симв., ${f.hint}`;
       return `<div class="field">
-          <label for="f-${f.type}"><span class="dot" style="--c:var(--seg-${f.type})"></span>${esc(f.label)}
+          <label for="f-${f.type}">${esc(f.label)}
             <span class="counter" data-for="f-${f.type}" data-len="${f.length}">0/${f.length}</span></label>
           <input id="f-${f.type}" name="${f.type}" maxlength="${f.length + 8}" placeholder="${esc(ph)}" spellcheck="false">
         </div>`;
@@ -674,28 +502,6 @@
   sel.addEventListener("change", renderFields);
   renderFields();
 
-  // ---------- подсветка частей IBAN ----------
-  function colorize(raw, segments) {
-    if (!segments) return esc(raw.replace(/(.{4})(?=.)/g, "$1 "));
-    const kindAt = new Array(raw.length).fill(null);
-    for (const s of segments) for (let i = s.start; i < s.start + s.length && i < raw.length; i++) kindAt[i] = s.kind;
-    let html = "", open = null;
-    for (let i = 0; i < raw.length; i++) {
-      const k = kindAt[i];
-      if (i > 0 && i % 4 === 0) {
-        if (open && open === k) html += " ";               // пробел внутри той же части
-        else { if (open) { html += "</span>"; open = null; } html += " "; }
-      }
-      if (k !== open) {
-        if (open) html += "</span>";
-        html += k ? `<span class="seg" style="--c:var(--seg-${k})" data-kind="${k}">` : "";
-        open = k;
-      }
-      html += esc(raw[i]);
-    }
-    if (open) html += "</span>";
-    return html;
-  }
 
   // ---------- вывод результата ----------
   function countryLabel(v) {
@@ -718,12 +524,11 @@
     }
     const rows = r.parts.map((p) => {
       const v = p.label === "Страна" ? countryLabel(p.value) : p.value;
-      const dot = p.kind ? `<span class="dot" style="--c:var(--seg-${p.kind})"></span>` : "";
-      return `<tr><td>${dot}${esc(p.label)}</td><td>${esc(v)}</td></tr>`;
+      return `<tr><td>${esc(p.label)}</td><td>${esc(v)}</td></tr>`;
     }).join("");
     const notes = (r.notes || []).length
       ? `<ul class="notes">${r.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : "";
-    const big = isBic ? esc(r.bic) : colorize(r.iban, r.segments);
+    const big = isBic ? esc(r.bic) : esc(r.formatted);
     $(target).innerHTML = `<div class="card ${cls}">
         <div class="status">${status}</div>
         <div class="big"><span>${big}</span>
@@ -944,13 +749,13 @@
   $("#bulk-example").addEventListener("click", () => {
     $("#bulk-input").value = [
       "Получатель;IBAN;Сумма",
-      "Max Mustermann;DE89 3704 0044 0532 0130 00;120,00",
-      "Ion Popescu;MD24AG000225100013104168;50",
-      "John Smith;GB29 NWBK 6016 1331 9268 19;75",
-      "Ошибка в цифре;GB28 NWBK 6016 1331 9268 19;10",
-      "Слишком короткий;DE8937040044053201300;5",
-      "Повтор;de89370400440532013000;120,00",
-      "Jean Dupont;FR79 2004 1010 0505 0001 3M02 600;30",
+      "John Smith;GB29 NWBK 6016 1331 9268 19;120.00",
+      "Emma Johnson;GB82 WEST 1234 5698 7654 32;50.00",
+      "Oliver Brown;GB33BUKB20201555555555;75.00",
+      "Amelia Wilson;GB94 BARC 1020 1530 0934 59;30.00",
+      "Ошибка в цифре;GB28 NWBK 6016 1331 9268 19;10.00",
+      "Слишком короткий;GB2NWBK6016133192681;5.00",
+      "Повтор;gb29nwbk60161331926819;120.00",
     ].join("\n");
     runBulk();
   });
@@ -969,33 +774,6 @@
     if (e.dataTransfer.files.length) readFile(e.dataTransfer.files[0]);
   });
 
-  // ---------- первый экран: кнопки и живой пример ----------
-  $("#country-count").textContent = countries.length;
-  document.querySelectorAll("[data-goto]").forEach((a) => a.addEventListener("click", () => openTab(a.dataset.goto)));
-
-  const LABELS = { country: "Страна", check: "Контрольные цифры", bank_code: "Код банка", bank_code_ext: "Доп. код банка",
-    branch_code: "Отделение", account_number: "Номер счёта", national_check_digit: "Нац. контрольная цифра",
-    account_type: "Тип счёта", owner_account_number: "Тип владельца", identification_number: "Идент. номер" };
-  const LIVE = ["DE", "FR", "MD", "IT", "GB", "ES", "NL", "RO", "PL", "CH", "UA", "BE"].filter((c) => byCode[c]);
-  let liveIdx = 0;
-  function liveTick() {
-    const code = LIVE[liveIdx++ % LIVE.length];
-    const r = JSON.parse(lib.random(code));
-    if (!r.ok) return;
-    const el = $("#live-iban");
-    el.classList.add("fade");
-    setTimeout(() => {
-      el.innerHTML = colorize(r.iban, r.segments);
-      $("#live-country").textContent = `${ruName(code, code)} · ${r.iban.length} символов · проверено iban4j ✓`;
-      $("#live-flag").textContent = code;
-      $("#live-legend").innerHTML = r.segments.map((s) =>
-        `<span><span class="dot" style="--c:var(--seg-${s.kind})"></span>${esc(LABELS[s.kind] || s.kind)}</span>`).join("");
-      el.classList.remove("fade");
-    }, 250);
-  }
-  liveTick();
-  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!reduce) setInterval(() => { if (!document.hidden) liveTick(); }, 3200);
 </script>
 </body>
 </html>

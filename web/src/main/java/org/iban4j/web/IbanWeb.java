@@ -258,7 +258,7 @@ public final class IbanWeb {
         try {
           BicUtil.validate(bicValue);
         } catch (BicFormatException | UnsupportedCountryException e) {
-          return error("BIC указан неверно (нужно 8 или 11 символов, например DEUTDEFF).");
+          return error("BIC указан неверно (нужно 8 или 11 символов, например NWBKGB2L).");
         }
         b.bic(Bic.valueOf(bicValue));
       }
