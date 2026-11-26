@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IBAN-помощник · iban4j в браузере</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f5f4a'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='700' fill='white' text-anchor='middle'%3EIB%3C/text%3E%3C/svg%3E">
+  <meta name="description" content="Сгенерировать и проверить IBAN и BIC. Работает на Java-библиотеке iban4j, скомпилированной в JavaScript.">
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --paper: #fffdf8;
+      --ink: #1d2433;
+      --muted: #6b7280;
+      --line: #e2dccf;
+      --accent: #1f5f4a;
+      --accent-soft: #e3efe9;
+      --warn: #8a5a00;
+      --warn-soft: #fbf0d9;
+      --bad: #9b2c2c;
+      --bad-soft: #fbe4e4;
+      --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14171d; --paper: #1b1f27; --ink: #e8e6e1; --muted: #9aa0aa; --line: #2c323d;
+        --accent: #6fc3a2; --accent-soft: #1c3a30; --warn: #f0c060; --warn-soft: #3a2f17;
+        --bad: #f08a8a; --bad-soft: #3b1d1d;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font: 16px/1.5 var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; }
+    header h1 {
+      font-size: 34px; line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.02em;
+    }
+    header h1 span { font-family: var(--mono); color: var(--accent); }
+    header p { margin: 0; color: var(--muted); max-width: 60ch; }
+
+    .tabs { display: flex; gap: 4px; margin: 28px 0 0; flex-wrap: wrap; }
+    .tab {
+      border: 1px solid var(--line); border-bottom: none; background: transparent; color: var(--muted);
+      padding: 10px 16px; border-radius: 10px 10px 0 0; font: inherit; font-size: 15px; cursor: pointer;
+    }
+    .tab[aria-selected="true"] { background: var(--paper); color: var(--ink); font-weight: 600; }
+    .panel {
+      background: var(--paper); border: 1px solid var(--line); border-radius: 0 12px 12px 12px;
+      padding: 24px;
+    }
+    .panel[hidden] { display: none; }
+    .lead { margin: 0 0 18px; color: var(--muted); font-size: 15px; }
+
+    label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+    .hint { font-weight: 400; color: var(--muted); }
+    input, select {
+      width: 100%; font: inherit; font-size: 17px; color: var(--ink); background: var(--bg);
+      border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px;
+    }
+    input { font-family: var(--mono); letter-spacing: 0.04em; }
+    input::placeholder { color: var(--muted); opacity: 0.7; letter-spacing: 0; font-family: var(--sans); font-size: 15px; }
+    input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+    .field { margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 16px; }
+    .counter { float: right; font-weight: 400; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .counter.ok { color: var(--accent); }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+    button.primary, button.secondary {
+      font: inherit; font-weight: 600; border-radius: 8px; padding: 11px 18px; cursor: pointer;
+    }
+    button.primary { background: var(--accent); color: var(--paper); border: 1px solid var(--accent); }
+    button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    button:disabled { opacity: 0.5; cursor: wait; }
+
+    .result { margin-top: 22px; }
+    .card { border-radius: 10px; padding: 18px; border: 1px solid var(--line); }
+    .card.ok { background: var(--accent-soft); border-color: transparent; }
+    .card.warn { background: var(--warn-soft); border-color: transparent; }
+    .card.bad { background: var(--bad-soft); border-color: transparent; color: var(--bad); }
+    .status { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+    .card.ok .status { color: var(--accent); }
+    .card.warn .status { color: var(--warn); }
+    .big {
+      font-family: var(--mono); font-size: 24px; letter-spacing: 0.03em; word-break: break-all;
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .copy {
+      font: inherit; font-size: 13px; font-family: var(--sans); letter-spacing: 0;
+      border: 1px solid currentColor; background: transparent; color: inherit; opacity: 0.8;
+      border-radius: 6px; padding: 4px 10px; cursor: pointer;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 15px; }
+    td { padding: 6px 0; border-top: 1px solid rgba(127,127,127,0.18); vertical-align: top; }
+    td:first-child { color: var(--muted); width: 45%; padding-right: 12px; }
+    td:last-child { font-family: var(--mono); }
+    ul.notes { margin: 12px 0 0; padding-left: 18px; font-size: 14px; color: var(--muted); }
+
+    .loading { color: var(--muted); font-size: 15px; }
+    footer { margin-top: 28px; color: var(--muted); font-size: 13px; }
+    footer a { color: inherit; }
+    @media (max-width: 520px) {
+      header h1 { font-size: 27px; }
+      .panel { padding: 18px; }
+      .big { font-size: 19px; }
+      .tabs { flex-wrap: nowrap; gap: 2px; }
+      .tab { padding: 9px 10px; font-size: 13.5px; flex: 1; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>IBAN-помощник <span>iban4j</span></h1>
+    <p>Собрать IBAN из кода банка и номера счёта, проверить номер на опечатки, расшифровать BIC.
+      Всё считается прямо в браузере — данные никуда не отправляются.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="build">Собрать IBAN</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="check">Проверить IBAN</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="bic">Проверить BIC</button>
+  </div>
+
+  <!-- Собрать -->
+  <section class="panel" id="panel-build" role="tabpanel">
+    <p class="lead">Выберите страну — появятся нужные поля. Пустое поле заполнится случайным значением.</p>
+    <div class="field">
+      <label for="country">Страна</label>
+      <select id="country" disabled><option>Загрузка библиотеки…</option></select>
+    </div>
+    <form id="build-form" autocomplete="off">
+      <div class="grid" id="fields"></div>
+      <div class="actions">
+        <button class="primary" type="submit" disabled>Собрать IBAN</button>
+        <button class="secondary" type="button" id="random-btn" disabled>Случайный IBAN</button>
+        <button class="secondary" type="button" id="clear-btn">Очистить</button>
+      </div>
+    </form>
+    <div class="result" id="build-result" aria-live="polite"></div>
+  </section>
+
+  <!-- Проверить IBAN -->
+  <section class="panel" id="panel-check" role="tabpanel" hidden>
+    <p class="lead">Вставьте IBAN — можно с пробелами и маленькими буквами.</p>
+    <form id="check-form" autocomplete="off">
+      <div class="field">
+        <label for="iban-input">IBAN</label>
+        <input id="iban-input" placeholder="например, MD24 AG00 0225 1000 1310 4168" spellcheck="false">
+      </div>
+      <div class="actions"><button class="primary" type="submit" disabled>Проверить</button></div>
+    </form>
+    <div class="result" id="check-result" aria-live="polite"></div>
+  </section>
+
+  <!-- Проверить BIC -->
+  <section class="panel" id="panel-bic" role="tabpanel" hidden>
+    <p class="lead">BIC (он же SWIFT-код) — 8 или 11 символов, например DEUTDEFF500.</p>
+    <form id="bic-form" autocomplete="off">
+      <div class="field">
+        <label for="bic-input">BIC / SWIFT</label>
+        <input id="bic-input" placeholder="например, DEUTDEFF500" spellcheck="false">
+      </div>
+      <div class="actions"><button class="primary" type="submit" disabled>Проверить</button></div>
+    </form>
+    <div class="result" id="bic-result" aria-live="polite"></div>
+  </section>
+
+  <footer>
+    Работает на Java-библиотеке <a href="https://github.com/arturmkrtchyan/iban4j">iban4j</a>,
+    скомпилированной в JavaScript с помощью <a href="https://teavm.org">TeaVM</a>.
+    Сгенерированные номера правильные по форме, но это не настоящие счета — только для тестов.
+  </footer>
+</div>
+
+<script type="module">
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ---------- вкладки ----------
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t === tab));
+      document.querySelectorAll(".panel").forEach((p) => (p.hidden = p.id !== "panel-" + tab.dataset.tab));
+    });
+  });
+
+  // ---------- загрузка библиотеки ----------
+  let lib;
+  try {
+    lib = await import("./iban4j.js");
+  } catch (e) {
+    $("#country").innerHTML = "<option>Не удалось загрузить библиотеку</option>";
+    $("#build-result").innerHTML = `<div class="card bad"><div class="status">Ошибка загрузки</div>${esc(e)}</div>`;
+    throw e;
+  }
+
+  // Русские названия стран берём из браузера
+  let ruName = (c, fallback) => fallback;
+  try {
+    const dn = new Intl.DisplayNames(["ru"], { type: "region" });
+    ruName = (c, fallback) => dn.of(c) || fallback;
+  } catch (_) {}
+
+  const countries = JSON.parse(lib.countries()).map((c) => ({ ...c, ru: ruName(c.code, c.name) }));
+  countries.sort((a, b) => a.ru.localeCompare(b.ru, "ru"));
+  const byCode = Object.fromEntries(countries.map((c) => [c.code, c]));
+
+  const sel = $("#country");
+  sel.innerHTML = countries
+    .map((c) => `<option value="${c.code}">${esc(c.ru)} (${c.code}) — ${c.length} симв.</option>`)
+    .join("");
+  sel.value = byCode.MD ? "MD" : countries[0].code;
+  sel.disabled = false;
+  document.querySelectorAll("button[disabled]").forEach((b) => (b.disabled = false));
+
+  // ---------- поля для страны ----------
+  const ORDER = ["bank_code", "bank_code_ext", "branch_code", "account_number", "account_type",
+                 "owner_account_number", "identification_number", "national_check_digit"];
+
+  function renderFields() {
+    const c = byCode[sel.value];
+    const fields = [...c.fields].sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type));
+    $("#fields").innerHTML = fields.map((f) => {
+      const isCheck = f.type === "national_check_digit";
+      const ph = isCheck
+        ? (c.canCompute ? "пусто — вычислим сами" : "пусто — случайное")
+        : `${f.length} симв., ${f.hint}`;
+      return `<div class="field">
+          <label for="f-${f.type}">${esc(f.label)}
+            <span class="counter" data-for="f-${f.type}" data-len="${f.length}">0/${f.length}</span></label>
+          <input id="f-${f.type}" name="${f.type}" maxlength="${f.length + 8}" placeholder="${esc(ph)}" spellcheck="false">
+        </div>`;
+    }).join("");
+    $("#fields").querySelectorAll("input").forEach((inp) => inp.addEventListener("input", updateCounter));
+    $("#build-result").innerHTML = "";
+  }
+  function updateCounter(e) {
+    const inp = e.target;
+    const cnt = document.querySelector(`.counter[data-for="${inp.id}"]`);
+    const n = inp.value.replace(/[\s-]/g, "").length;
+    cnt.textContent = `${n}/${cnt.dataset.len}`;
+    cnt.classList.toggle("ok", n === +cnt.dataset.len);
+  }
+  sel.addEventListener("change", renderFields);
+  renderFields();
+
+  // ---------- вывод результата ----------
+  function show(target, json, kind) {
+    const r = JSON.parse(json);
+    if (!r.ok) {
+      $(target).innerHTML = `<div class="card bad"><div class="status">✖ ${esc(r.error)}</div></div>`;
+      return;
+    }
+    const value = kind === "bic" ? r.bic : r.formatted;
+    const raw = kind === "bic" ? r.bic : r.iban;
+    let cls = "ok", status = kind === "bic" ? "✔ BIC правильный" : "✔ IBAN правильный — проверено библиотекой iban4j";
+    if (kind !== "bic" && r.nationalRule && !r.nationalOk) {
+      cls = "warn";
+      status = "⚠ Общая контрольная сумма верна, но национальная контрольная цифра не сходится по правилам страны";
+    }
+    const rows = r.parts.map((p) => {
+      let v = p.value;
+      const m = p.label === "Страна" && /^([A-Z]{2}) — /.exec(v);
+      if (m) v = `${m[1]} — ${ruName(m[1], v.slice(5))}`;
+      return `<tr><td>${esc(p.label)}</td><td>${esc(v)}</td></tr>`;
+    }).join("");
+    const notes = (r.notes || []).length
+      ? `<ul class="notes">${r.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : "";
+    $(target).innerHTML = `<div class="card ${cls}">
+        <div class="status">${status}</div>
+        <div class="big"><span>${esc(value)}</span>
+          <button class="copy" type="button" data-copy="${esc(raw)}">Копировать</button></div>
+        ${kind !== "bic" && raw !== value ? `<div style="font-family:var(--mono);font-size:14px;opacity:.75;margin-top:4px">${esc(raw)}</div>` : ""}
+        <table>${rows}</table>${notes}
+      </div>`;
+  }
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".copy");
+    if (!btn) return;
+    try {
+      await navigator.clipboard.writeText(btn.dataset.copy);
+      btn.textContent = "Скопировано ✓";
+    } catch (_) {
+      btn.textContent = "Не удалось";
+    }
+    setTimeout(() => (btn.textContent = "Копировать"), 1500);
+  });
+
+  // ---------- действия ----------
+  $("#build-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const v = (t) => (document.getElementById("f-" + t)?.value ?? "");
+    show("#build-result", lib.build(sel.value, v("bank_code"), v("bank_code_ext"), v("branch_code"),
+      v("account_number"), v("national_check_digit"), v("account_type"),
+      v("owner_account_number"), v("identification_number")), "iban");
+  });
+  $("#random-btn").addEventListener("click", () => show("#build-result", lib.random(sel.value), "iban"));
+  $("#clear-btn").addEventListener("click", renderFields);
+  $("#check-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    show("#check-result", lib.check($("#iban-input").value), "iban");
+  });
+  $("#bic-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    show("#bic-result", lib.checkBic($("#bic-input").value), "bic");
+  });
+</script>
+</body>
+</html>
